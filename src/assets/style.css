@@ -1,0 +1,71 @@
+/* Espace Mission — La PME Digitale — Custom styles */
+
+/* Prose styling pour le rendu Markdown */
+.prose h1 { font-size: 1.5rem; font-weight: 700; color: #1f2937; margin-bottom: 0.75rem; margin-top: 0; }
+.prose h2 { font-size: 1.15rem; font-weight: 600; color: #374151; margin-top: 1.75rem; margin-bottom: 0.5rem; padding-bottom: 0.35rem; border-bottom: 1px solid #e5e7eb; }
+.prose h3 { font-size: 1rem; font-weight: 600; color: #4b5563; margin-top: 1.25rem; margin-bottom: 0.4rem; }
+
+.prose p { color: #4b5563; line-height: 1.7; margin-bottom: 0.75rem; }
+
+.prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+.prose ol { list-style-type: decimal; padding-left: 1.5rem; margin-bottom: 0.75rem; }
+.prose li { color: #4b5563; line-height: 1.6; margin-bottom: 0.25rem; }
+.prose li ul { margin-top: 0.25rem; margin-bottom: 0; }
+
+.prose strong { font-weight: 600; color: #1f2937; }
+.prose em { font-style: italic; }
+
+.prose a { color: #2563eb; text-decoration: underline; }
+.prose a:hover { color: #1d4ed8; }
+
+.prose blockquote {
+    border-left: 3px solid #3b82f6;
+    padding-left: 1rem;
+    margin: 1rem 0;
+    color: #6b7280;
+    font-style: italic;
+}
+
+.prose code {
+    background: #f3f4f6;
+    padding: 0.15rem 0.35rem;
+    border-radius: 0.25rem;
+    font-size: 0.875rem;
+    color: #dc2626;
+}
+
+.prose pre {
+    background: #1f2937;
+    color: #e5e7eb;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+}
+.prose pre code {
+    background: none;
+    color: inherit;
+    padding: 0;
+}
+
+.prose hr {
+    border: none;
+    border-top: 1px solid #e5e7eb;
+    margin: 1.5rem 0;
+}
+
+.prose table { width: 100%; border-collapse: collapse; margin: 1rem 0; font-size: 0.875rem; }
+.prose th { text-align: left; font-weight: 600; color: #374151; padding: 0.5rem; border-bottom: 2px solid #e5e7eb; }
+.prose td { padding: 0.5rem; border-bottom: 1px solid #f3f4f6; color: #4b5563; }
+.prose tr:hover td { background: #f9fafb; }
+
+/* Badge statuts */
+.badge-en-cours { background: #dbeafe; color: #1d4ed8; }
+.badge-termine { background: #d1fae5; color: #065f46; }
+.badge-a-venir { background: #f3f4f6; color: #6b7280; }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .prose h1 { font-size: 1.25rem; }
+    .prose h2 { font-size: 1.05rem; }
+}

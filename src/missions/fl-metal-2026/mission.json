@@ -1,0 +1,23 @@
+{
+    "client": "FL Métal",
+    "titre": "Mission SI — Module complémentaire BPI",
+    "code": "FLM_2026_SI",
+    "objectif": "Structurer et fiabiliser le SI pour accompagner la croissance",
+    "date_debut": "23 mars 2026",
+    "duree": "3 à 6 mois",
+    "consultant": "Serge Fornier",
+    "phase_actuelle": "Phase A — Audit terrain",
+    "phase_statut": "en_cours",
+    "intervenants": [
+        { "nom": "Jacky Cabailh", "role": "DG — FL Métal" },
+        { "nom": "Guillaume Rambaud", "role": "Responsable Conseil BPI" },
+        { "nom": "Serge Fornier", "role": "Consultant SI — La PME Digitale" }
+    ],
+    "phases": [
+        { "nom": "Amorçage", "code": "phase_0", "statut": "termine" },
+        { "nom": "Audit terrain", "code": "phase_a", "statut": "en_cours" },
+        { "nom": "Analyse & Scénarios", "code": "phase_b", "statut": "a_venir" },
+        { "nom": "Recommandations", "code": "phase_c", "statut": "a_venir" },
+        { "nom": "Feuille de route", "code": "phase_d", "statut": "a_venir" }
+    ]
+}

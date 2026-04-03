@@ -1,0 +1,21 @@
+RewriteEngine On
+RewriteBase /
+
+# Ne pas réécrire les fichiers/dossiers existants (assets, etc.)
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+
+# Tout router vers index.php
+RewriteRule ^(.*)$ index.php [QSA,L]
+
+# Bloquer l'accès aux fichiers sensibles
+<FilesMatch "\.(json|md)$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>
+
+# Bloquer l'accès au dossier includes
+<IfModule mod_rewrite.c>
+    RewriteRule ^includes/ - [F,L]
+    RewriteRule ^missions/.*\.(json|md)$ - [F,L]
+</IfModule>
