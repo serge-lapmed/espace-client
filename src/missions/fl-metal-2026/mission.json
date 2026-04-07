@@ -11,11 +11,21 @@
     "jours_consommes": 2.65,
     "phase_actuelle": "Phase A — Audit terrain",
     "phase_statut": "en_cours",
-    "financeur": {
-        "nom": "Bpifrance",
-        "logo": "bpi.svg",
-        "ref": "Module complémentaire — Conseil SI"
-    },
+    "financeur": [
+        {
+            "nom": "Bpifrance",
+            "logo": "https://cdn.prod.website-files.com/6572dfda008300c4f3eb3d53/69d3f7cf7f2eb1b75f6e1d3e_logo-bpifrance-signature-40px.png",
+            "ref": "Module complémentaire — Conseil SI"
+        },
+        {
+            "nom": "France Num",
+            "logo": "https://cdn.prod.website-files.com/6572dfda008300c4f3eb3d53/69d3f7d20bbfbb5fb85795eb_logo-francenum-signature-40px.jpg"
+        },
+        {
+            "nom": "ENE",
+            "logo": "https://cdn.prod.website-files.com/6572dfda008300c4f3eb3d53/69d3f7cf1b6fdb4c715dde7d_logo-ene-signature-40px.jpg"
+        }
+    ],
     "modules": ["resumes", "messages", "documents", "actions"],
     "intervenants": [
         { "nom": "Jacky Cabailh", "role": "DG — FL Métal" },

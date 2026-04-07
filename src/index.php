@@ -266,9 +266,12 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
                 <div>
                     <div class="flex items-center gap-3">
                         <h1 class="text-xl font-semibold text-gray-800"><?= htmlspecialchars($mission['client']) ?></h1>
-                        <?php if ($financeur): ?>
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium"><?= htmlspecialchars($financeur['nom']) ?></span>
-                        <?php endif; ?>
+                        <?php if ($financeur):
+                            $first_financeur = isset($financeur['nom']) ? $financeur : ($financeur[0] ?? null);
+                            if ($first_financeur):
+                        ?>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium"><?= htmlspecialchars($first_financeur['nom']) ?></span>
+                        <?php endif; endif; ?>
                     </div>
                     <p class="text-sm text-gray-500 mt-0.5"><?= htmlspecialchars($mission['titre']) ?></p>
                 </div>
@@ -557,11 +560,23 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
     <footer class="border-t border-gray-100 mt-12 py-6">
         <div class="max-w-5xl mx-auto px-6">
             <?php if ($financeur): ?>
-            <div class="flex items-center justify-center gap-3 mb-4">
-                <?php if (!empty($financeur['logo'])): ?>
-                <img src="/assets/<?= htmlspecialchars($financeur['logo']) ?>" alt="<?= htmlspecialchars($financeur['nom']) ?>" class="h-8 opacity-60">
-                <?php endif; ?>
-                <span class="text-xs text-gray-400">Mission accompagnée avec le soutien de <?= htmlspecialchars($financeur['nom']) ?></span>
+            <div class="text-center mb-4">
+                <span class="text-xs text-gray-400 block mb-3">Mission accompagnée avec le soutien de</span>
+                <div class="flex items-center justify-center gap-6 flex-wrap">
+                    <?php
+                    // Supporter un objet unique (rétrocompat) ou un tableau
+                    $financeurs = isset($financeur['nom']) ? [$financeur] : $financeur;
+                    foreach ($financeurs as $f):
+                    ?>
+                    <div class="flex items-center gap-2">
+                        <?php if (!empty($f['logo'])): ?>
+                        <img src="<?= htmlspecialchars($f['logo']) ?>" alt="<?= htmlspecialchars($f['nom']) ?>" class="h-8 opacity-70">
+                        <?php else: ?>
+                        <span class="text-xs font-medium text-gray-500"><?= htmlspecialchars($f['nom']) ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
             </div>
             <?php endif; ?>
             <p class="text-center text-xs text-gray-400">
