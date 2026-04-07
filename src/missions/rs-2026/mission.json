@@ -12,7 +12,7 @@
     "phase_actuelle": "Cadrage",
     "phase_statut": "en_cours",
     "financeur": null,
-    "logo_client": "/assets/logo-rs.png",
+    "logo_client": "/assets/logo-rs.jpeg",
     "modules": ["mission", "resumes", "messages", "documents", "actions"],
     "intervenants": [
         { "nom": "Chloé Falaize", "role": "Responsable projet — Resosign", "type": "sponsor" },
