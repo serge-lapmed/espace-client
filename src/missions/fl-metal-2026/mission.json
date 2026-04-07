@@ -18,7 +18,7 @@
     },
     "modules": ["mission", "resumes", "messages", "documents", "actions"],
     "intervenants": [
-        { "nom": "Jacky Cabailh", "role": "DG", "type": "sponsor" },
+        { "nom": "Jacky Cabailh", "role": "PDG", "type": "sponsor" },
         { "nom": "Guillaume Rambaud", "role": "Responsable Conseil BPI", "type": "rc" },
         { "nom": "Serge Fornier", "role": "Consultant SI — La PME Digitale", "type": "consultant" }
     ],

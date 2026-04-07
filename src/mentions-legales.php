@@ -30,7 +30,7 @@ require_once __DIR__ . '/includes/config.php';
                 <p>
                     <strong>La PME Digitale</strong> — Serge Fornier<br>
                     Consultant en Système d'Information<br>
-                    SIRET : [à compléter]<br>
+                    SIRET : 98209962400016<br>
                     Email : <a href="mailto:serge@lapmedigitale.fr" class="text-blue-600">serge@lapmedigitale.fr</a><br>
                     Téléphone : +33 6 50 13 56 54<br>
                     Site : <a href="https://lapmedigitale.fr" class="text-blue-600" target="_blank">lapmedigitale.fr</a>
