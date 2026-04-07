@@ -1,0 +1,20 @@
+<?php
+/**
+ * Espace Mission — Configuration (TEMPLATE)
+ * Copier vers config.php et remplir les valeurs
+ */
+
+define('SITE_NAME', 'Espace Mission — La PME Digitale');
+define('SITE_URL', 'https://mission.lapmedigitale.fr');
+define('MISSIONS_DIR', __DIR__ . '/../missions');
+define('CONSULTANT_NAME', 'Serge Fornier');
+define('CONSULTANT_TITLE', 'Consultant SI — La PME Digitale');
+
+// ─── Base de données ───
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'qufi1696_mission');     // ← Adapter
+define('DB_USER', 'qufi1696_mission');     // ← Adapter
+define('DB_PASS', '');                      // ← MOT DE PASSE ICI
+
+// ─── Fonctions (ne pas modifier) ───
+// ... (voir config.php pour le code complet)

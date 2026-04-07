@@ -1,6 +1,9 @@
 RewriteEngine On
 RewriteBase /
 
+# Fichiers PHP directs (login, logout, admin)
+RewriteRule ^(login|logout|admin)\.php$ $1.php [QSA,L]
+
 # Ne pas réécrire les fichiers/dossiers existants (assets, etc.)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d

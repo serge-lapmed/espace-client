@@ -4,15 +4,22 @@
  * mission.lapmedigitale.fr
  */
 
+// ─── Site ───
 define('SITE_NAME', 'Espace Mission — La PME Digitale');
 define('SITE_URL', 'https://mission.lapmedigitale.fr');
 define('MISSIONS_DIR', __DIR__ . '/../missions');
 define('CONSULTANT_NAME', 'Serge Fornier');
 define('CONSULTANT_TITLE', 'Consultant SI — La PME Digitale');
 
-/**
- * Charge les métadonnées d'une mission depuis mission.json
- */
+// ─── Base de données (O2switch) ───
+// À CONFIGURER : voir phpMyAdmin dans l'admin O2switch
+define('DB_HOST', 'localhost');
+define('DB_NAME', 'qufi1696_mission');     // Adapter au nom réel
+define('DB_USER', 'serge');     // Adapter
+define('DB_PASS', '4318ocKamese!');                      // ← METTRE LE MOT DE PASSE ICI
+
+// ─── Contenu : fonctions de chargement depuis fichiers ───
+
 function load_mission(string $slug): ?array {
     $path = MISSIONS_DIR . '/' . $slug . '/mission.json';
     if (!file_exists($path)) return null;
@@ -22,9 +29,6 @@ function load_mission(string $slug): ?array {
     return $data;
 }
 
-/**
- * Liste les résumés disponibles pour une mission (triés du plus récent au plus ancien)
- */
 function list_resumes(string $slug): array {
     $dir = MISSIONS_DIR . '/' . $slug . '/resumes';
     if (!is_dir($dir)) return [];
@@ -42,15 +46,10 @@ function list_resumes(string $slug): array {
         ];
     }
 
-    // Tri décroissant par nom de fichier (2026-S15 > 2026-S14)
     usort($resumes, fn($a, $b) => strcmp($b['id'], $a['id']));
-
     return $resumes;
 }
 
-/**
- * Liste les missions disponibles
- */
 function list_missions(): array {
     $dirs = glob(MISSIONS_DIR . '/*', GLOB_ONLYDIR);
     $missions = [];
@@ -62,9 +61,6 @@ function list_missions(): array {
     return $missions;
 }
 
-/**
- * Nettoie un slug pour éviter les traversées de répertoire
- */
 function sanitize_slug(string $input): string {
     return preg_replace('/[^a-z0-9\-]/', '', strtolower($input));
 }
