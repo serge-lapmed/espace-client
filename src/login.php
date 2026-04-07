@@ -86,7 +86,10 @@ if ($page === 'reset') {
 
         <div class="text-center mb-6">
             <h1 class="text-xl font-semibold text-gray-800">Espace Mission</h1>
-            <p class="text-sm text-gray-500 mt-1">La PME Digitale</p>
+            <p class="text-xs text-gray-400 mt-1 uppercase tracking-wide">Mission Expert Conseil</p>
+            <div class="flex items-center justify-center gap-2 mt-3">
+                <img src="https://cdn.prod.website-files.com/6572dfda008300c4f3eb3d53/69d3f7cf7f2eb1b75f6e1d3e_logo-bpifrance-signature-40px.png" alt="Bpifrance" class="h-6 opacity-70">
+            </div>
         </div>
 
         <?php if ($error): ?>
@@ -169,6 +172,9 @@ if ($page === 'reset') {
 
     <p class="text-center text-xs text-gray-400 mt-4">
         <?= CONSULTANT_NAME ?> · <?= CONSULTANT_TITLE ?>
+    </p>
+    <p class="text-center mt-2">
+        <a href="/mentions-legales.php" class="text-xs text-gray-300 hover:text-gray-500">Mentions légales & confidentialité</a>
     </p>
 </div>
 

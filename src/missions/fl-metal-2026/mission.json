@@ -11,32 +11,67 @@
     "jours_consommes": 2.65,
     "phase_actuelle": "Phase A — Audit terrain",
     "phase_statut": "en_cours",
-    "financeur": [
+    "financeur": {
+        "nom": "Bpifrance",
+        "logo": "https://cdn.prod.website-files.com/6572dfda008300c4f3eb3d53/69d3f7cf7f2eb1b75f6e1d3e_logo-bpifrance-signature-40px.png",
+        "ref": "Mission Expert Conseil — Module complémentaire SI"
+    },
+    "modules": ["mission", "resumes", "messages", "documents", "actions"],
+    "intervenants": [
+        { "nom": "Jacky Cabailh", "role": "DG", "type": "sponsor" },
+        { "nom": "Guillaume Rambaud", "role": "Responsable Conseil BPI", "type": "rc" },
+        { "nom": "Serge Fornier", "role": "Consultant SI — La PME Digitale", "type": "consultant" }
+    ],
+    "gouvernance": {
+        "copil": ["Jacky Cabailh", "Guillaume Rambaud", "Serge Fornier"],
+        "frequence": "Point mensuel ou à la demande"
+    },
+    "phases": [
         {
-            "nom": "Bpifrance",
-            "logo": "https://cdn.prod.website-files.com/6572dfda008300c4f3eb3d53/69d3f7cf7f2eb1b75f6e1d3e_logo-bpifrance-signature-40px.png",
-            "ref": "Module complémentaire — Conseil SI"
+            "nom": "Amorçage",
+            "code": "phase_0",
+            "statut": "termine",
+            "description": "Réunion de lancement, validation du périmètre et des objectifs"
         },
         {
-            "nom": "France Num",
-            "logo": "https://cdn.prod.website-files.com/6572dfda008300c4f3eb3d53/69d3f7d20bbfbb5fb85795eb_logo-francenum-signature-40px.jpg"
+            "nom": "Audit terrain",
+            "code": "phase_a",
+            "statut": "en_cours",
+            "description": "Entretiens, cartographie SI, évaluation maturité digitale, carte des motivations",
+            "etapes": ["Carte des motivations dirigeant", "Évaluation maturité digitale", "Cartographie SI (macro)", "Cartographie processus (macro)", "Matrice des risques"]
         },
         {
-            "nom": "ENE",
-            "logo": "https://cdn.prod.website-files.com/6572dfda008300c4f3eb3d53/69d3f7cf1b6fdb4c715dde7d_logo-ene-signature-40px.jpg"
+            "nom": "Analyse & Scénarios",
+            "code": "phase_b",
+            "statut": "a_venir",
+            "description": "Diagnostic approfondi, identification des scénarios d'évolution, calcul ROI",
+            "etapes": ["Diagnostic détaillé", "Scénarios d'évolution SI", "Calcul macro ROI", "Axes de travail prioritaires"]
+        },
+        {
+            "nom": "Recommandations",
+            "code": "phase_c",
+            "statut": "a_venir",
+            "description": "Sélection des solutions, architecture cible, chiffrage",
+            "etapes": ["Schéma directeur SI", "Expression de besoins", "Identification solutions", "Chiffrage"]
+        },
+        {
+            "nom": "Feuille de route",
+            "code": "phase_d",
+            "statut": "a_venir",
+            "description": "Roadmap priorisée, restitution CODIR, note de synthèse",
+            "etapes": ["Feuille de route priorisée", "Note de synthèse", "Restitution CODIR"]
         }
     ],
-    "modules": ["resumes", "messages", "documents", "actions"],
-    "intervenants": [
-        { "nom": "Jacky Cabailh", "role": "DG — FL Métal" },
-        { "nom": "Guillaume Rambaud", "role": "Responsable Conseil BPI" },
-        { "nom": "Serge Fornier", "role": "Consultant SI — La PME Digitale" }
+    "livrables": [
+        "Carte des motivations",
+        "Diagnostic SI, processus et risques",
+        "Feuille de route priorisée",
+        "Note de synthèse (document de référence)",
+        "Restitution CODIR"
     ],
-    "phases": [
-        { "nom": "Amorçage", "code": "phase_0", "statut": "termine" },
-        { "nom": "Audit terrain", "code": "phase_a", "statut": "en_cours" },
-        { "nom": "Analyse & Scénarios", "code": "phase_b", "statut": "a_venir" },
-        { "nom": "Recommandations", "code": "phase_c", "statut": "a_venir" },
-        { "nom": "Feuille de route", "code": "phase_d", "statut": "a_venir" }
+    "bonnes_pratiques": [
+        "Les échanges passent par cet espace — moins d'emails dispersés",
+        "Le plan d'action est mis à jour chaque semaine",
+        "Les documents et questions sont directement suivis par le consultant"
     ]
 }

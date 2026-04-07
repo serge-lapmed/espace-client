@@ -223,12 +223,14 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
 
     // Labels onglets
     $tab_labels = [
+        'mission' => 'Mission',
         'resumes' => 'Résumés',
         'messages' => 'Messages',
         'documents' => 'Documents',
         'actions' => 'Plan d\'action',
     ];
     $tab_icons = [
+        'mission' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
         'resumes' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>',
         'messages' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>',
         'documents' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>',
@@ -266,12 +268,9 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
                 <div>
                     <div class="flex items-center gap-3">
                         <h1 class="text-xl font-semibold text-gray-800"><?= htmlspecialchars($mission['client']) ?></h1>
-                        <?php if ($financeur):
-                            $first_financeur = isset($financeur['nom']) ? $financeur : ($financeur[0] ?? null);
-                            if ($first_financeur):
-                        ?>
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium"><?= htmlspecialchars($first_financeur['nom']) ?></span>
-                        <?php endif; endif; ?>
+                        <?php if ($financeur): ?>
+                        <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium"><?= htmlspecialchars($financeur['nom']) ?></span>
+                        <?php endif; ?>
                     </div>
                     <p class="text-sm text-gray-500 mt-0.5"><?= htmlspecialchars($mission['titre']) ?></p>
                 </div>
@@ -383,7 +382,141 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
 
         <!-- CONTENU ONGLET -->
 
-        <?php if ($active_tab === 'resumes'): ?>
+        <?php if ($active_tab === 'mission'): ?>
+        <!-- ═══ FICHE MISSION ═══ -->
+        <div class="max-w-3xl space-y-6">
+
+            <!-- Objectif & infos clés -->
+            <div class="bg-white rounded-lg border border-gray-200 p-5">
+                <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Objectif de la mission</h3>
+                <p class="text-gray-800 font-medium"><?= htmlspecialchars($mission['objectif'] ?? '') ?></p>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-gray-100 text-sm">
+                    <div><span class="text-gray-400 block text-xs">Code</span><span class="font-medium"><?= htmlspecialchars($mission['code'] ?? '—') ?></span></div>
+                    <div><span class="text-gray-400 block text-xs">Démarrage</span><span class="font-medium"><?= htmlspecialchars($mission['date_debut'] ?? '—') ?></span></div>
+                    <div><span class="text-gray-400 block text-xs">Durée</span><span class="font-medium"><?= htmlspecialchars($mission['duree'] ?? '—') ?></span></div>
+                    <div><span class="text-gray-400 block text-xs">Consultant</span><span class="font-medium"><?= htmlspecialchars($mission['consultant'] ?? CONSULTANT_NAME) ?></span></div>
+                </div>
+                <?php if ($financeur && !empty($financeur['ref'])): ?>
+                <div class="mt-3 pt-3 border-t border-gray-100 flex items-center gap-2 text-sm">
+                    <?php if (!empty($financeur['logo'])): ?>
+                    <img src="<?= htmlspecialchars($financeur['logo']) ?>" alt="<?= htmlspecialchars($financeur['nom']) ?>" class="h-5 opacity-60">
+                    <?php endif; ?>
+                    <span class="text-gray-500"><?= htmlspecialchars($financeur['ref']) ?></span>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Phases détaillées -->
+            <?php if (!empty($phases)): ?>
+            <div class="bg-white rounded-lg border border-gray-200 p-5">
+                <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">Déroulement de la mission</h3>
+                <div class="space-y-4">
+                    <?php foreach ($phases as $idx => $phase):
+                        $is_current = ($phase['statut'] ?? '') === 'en_cours';
+                        $is_done = ($phase['statut'] ?? '') === 'termine';
+                        if ($is_done) { $dot = 'bg-green-500'; $text_color = 'text-gray-500'; }
+                        elseif ($is_current) { $dot = 'bg-blue-500'; $text_color = 'text-gray-800'; }
+                        else { $dot = 'bg-gray-300'; $text_color = 'text-gray-400'; }
+                        $statut_label = $is_done ? 'Terminée' : ($is_current ? 'En cours' : 'À venir');
+                    ?>
+                    <div class="flex gap-3 <?= $text_color ?>">
+                        <div class="flex flex-col items-center flex-shrink-0">
+                            <div class="w-3 h-3 rounded-full <?= $dot ?> mt-1"></div>
+                            <?php if ($idx < count($phases) - 1): ?>
+                            <div class="w-0.5 flex-1 <?= $is_done ? 'bg-green-300' : 'bg-gray-200' ?> mt-1"></div>
+                            <?php endif; ?>
+                        </div>
+                        <div class="pb-4 flex-1">
+                            <div class="flex items-center gap-2">
+                                <h4 class="text-sm font-semibold"><?= htmlspecialchars($phase['nom']) ?></h4>
+                                <span class="text-xs px-1.5 py-0.5 rounded <?= $is_done ? 'bg-green-50 text-green-600' : ($is_current ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-400') ?>"><?= $statut_label ?></span>
+                            </div>
+                            <?php if (!empty($phase['description'])): ?>
+                            <p class="text-xs mt-1 <?= $is_current ? 'text-gray-600' : 'text-gray-400' ?>"><?= htmlspecialchars($phase['description']) ?></p>
+                            <?php endif; ?>
+                            <?php if (!empty($phase['etapes'])): ?>
+                            <ul class="mt-2 space-y-1">
+                                <?php foreach ($phase['etapes'] as $etape): ?>
+                                <li class="text-xs flex items-start gap-1.5">
+                                    <span class="mt-1 w-1 h-1 rounded-full <?= $dot ?> flex-shrink-0"></span>
+                                    <?= htmlspecialchars($etape) ?>
+                                </li>
+                                <?php endforeach; ?>
+                            </ul>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Intervenants & gouvernance -->
+            <?php if (!empty($mission['intervenants'])): ?>
+            <div class="bg-white rounded-lg border border-gray-200 p-5">
+                <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-4">Intervenants</h3>
+                <div class="space-y-3">
+                    <?php
+                    $type_labels = ['sponsor' => 'Sponsor client', 'rc' => 'Responsable Conseil', 'consultant' => 'Consultant', 'equipe' => 'Équipe projet'];
+                    $type_colors = ['sponsor' => 'bg-blue-50 text-blue-700', 'rc' => 'bg-yellow-50 text-yellow-700', 'consultant' => 'bg-green-50 text-green-700', 'equipe' => 'bg-gray-50 text-gray-600'];
+                    foreach ($mission['intervenants'] as $i):
+                        $type = $i['type'] ?? '';
+                    ?>
+                    <div class="flex items-center justify-between text-sm">
+                        <div>
+                            <span class="font-medium text-gray-800"><?= htmlspecialchars($i['nom']) ?></span>
+                            <span class="text-gray-400 ml-1">— <?= htmlspecialchars($i['role']) ?></span>
+                        </div>
+                        <?php if ($type && isset($type_labels[$type])): ?>
+                        <span class="text-xs px-2 py-0.5 rounded-full <?= $type_colors[$type] ?? '' ?>"><?= $type_labels[$type] ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php if (!empty($mission['gouvernance'])): ?>
+                <div class="mt-4 pt-4 border-t border-gray-100">
+                    <h4 class="text-xs font-semibold text-gray-400 uppercase mb-2">Gouvernance</h4>
+                    <?php if (!empty($mission['gouvernance']['copil'])): ?>
+                    <p class="text-sm text-gray-600"><span class="font-medium">COPIL :</span> <?= htmlspecialchars(implode(', ', $mission['gouvernance']['copil'])) ?></p>
+                    <?php endif; ?>
+                    <?php if (!empty($mission['gouvernance']['frequence'])): ?>
+                    <p class="text-xs text-gray-400 mt-1"><?= htmlspecialchars($mission['gouvernance']['frequence']) ?></p>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+            </div>
+            <?php endif; ?>
+
+            <!-- Livrables -->
+            <?php if (!empty($mission['livrables'])): ?>
+            <div class="bg-white rounded-lg border border-gray-200 p-5">
+                <h3 class="text-sm font-semibold text-gray-400 uppercase tracking-wide mb-3">Livrables attendus</h3>
+                <div class="space-y-2">
+                    <?php foreach ($mission['livrables'] as $livrable): ?>
+                    <div class="flex items-center gap-2 text-sm text-gray-700">
+                        <svg class="w-4 h-4 text-gray-300 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4"/></svg>
+                        <?= htmlspecialchars($livrable) ?>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
+            <!-- Bonnes pratiques -->
+            <?php if (!empty($mission['bonnes_pratiques'])): ?>
+            <div class="bg-blue-50 rounded-lg border border-blue-100 p-5">
+                <h3 class="text-sm font-semibold text-blue-800 mb-3">Bonnes pratiques</h3>
+                <div class="space-y-2">
+                    <?php foreach ($mission['bonnes_pratiques'] as $bp): ?>
+                    <p class="text-sm text-blue-700"><?= htmlspecialchars($bp) ?></p>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+            <?php endif; ?>
+
+        </div>
+
+        <?php elseif ($active_tab === 'resumes'): ?>
         <!-- ═══ RÉSUMÉS ═══ -->
         <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div class="md:col-span-1">
@@ -560,27 +693,16 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
     <footer class="border-t border-gray-100 mt-12 py-6">
         <div class="max-w-5xl mx-auto px-6">
             <?php if ($financeur): ?>
-            <div class="text-center mb-4">
-                <span class="text-xs text-gray-400 block mb-3">Mission accompagnée avec le soutien de</span>
-                <div class="flex items-center justify-center gap-6 flex-wrap">
-                    <?php
-                    // Supporter un objet unique (rétrocompat) ou un tableau
-                    $financeurs = isset($financeur['nom']) ? [$financeur] : $financeur;
-                    foreach ($financeurs as $f):
-                    ?>
-                    <div class="flex items-center gap-2">
-                        <?php if (!empty($f['logo'])): ?>
-                        <img src="<?= htmlspecialchars($f['logo']) ?>" alt="<?= htmlspecialchars($f['nom']) ?>" class="h-8 opacity-70">
-                        <?php else: ?>
-                        <span class="text-xs font-medium text-gray-500"><?= htmlspecialchars($f['nom']) ?></span>
-                        <?php endif; ?>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
+            <div class="flex items-center justify-center gap-3 mb-4">
+                <?php if (!empty($financeur['logo'])): ?>
+                <img src="<?= htmlspecialchars($financeur['logo']) ?>" alt="<?= htmlspecialchars($financeur['nom']) ?>" class="h-8 opacity-60">
+                <?php endif; ?>
+                <span class="text-xs text-gray-400">Mission accompagnée avec le soutien de <?= htmlspecialchars($financeur['nom']) ?></span>
             </div>
             <?php endif; ?>
             <p class="text-center text-xs text-gray-400">
                 <?= SITE_NAME ?> · <?= CONSULTANT_NAME ?> · <?= date('Y') ?>
+                · <a href="/mentions-legales.php" class="hover:text-gray-600">Mentions légales</a>
             </p>
         </div>
     </footer>
