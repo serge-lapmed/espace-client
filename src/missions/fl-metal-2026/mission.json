@@ -2,6 +2,7 @@
     "client": "FL Métal",
     "titre": "Mission SI — Module complémentaire BPI",
     "code": "FLM_2026_SI",
+    "type": "diagnostic-si",
     "objectif": "Structurer et fiabiliser le SI pour accompagner la croissance",
     "date_debut": "23 mars 2026",
     "duree": "3 à 6 mois",
@@ -10,6 +11,12 @@
     "jours_consommes": 2.65,
     "phase_actuelle": "Phase A — Audit terrain",
     "phase_statut": "en_cours",
+    "financeur": {
+        "nom": "Bpifrance",
+        "logo": "bpi.svg",
+        "ref": "Module complémentaire — Conseil SI"
+    },
+    "modules": ["resumes", "messages", "documents", "actions"],
     "intervenants": [
         { "nom": "Jacky Cabailh", "role": "DG — FL Métal" },
         { "nom": "Guillaume Rambaud", "role": "Responsable Conseil BPI" },
