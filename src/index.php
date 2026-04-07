@@ -155,9 +155,14 @@ function render_home(array $missions, array $user): void {
         <?php foreach ($missions as $m): ?>
             <a href="/<?= $m['slug'] ?>" class="block bg-white rounded-lg border border-gray-200 p-5 hover:border-blue-400 hover:shadow-sm transition">
                 <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="font-semibold text-gray-800"><?= htmlspecialchars($m['client']) ?></h3>
-                        <p class="text-sm text-gray-500"><?= htmlspecialchars($m['titre']) ?></p>
+                    <div class="flex items-center gap-3">
+                        <?php if (!empty($m['logo_client'])): ?>
+                        <img src="<?= htmlspecialchars($m['logo_client']) ?>" alt="" class="h-8 w-8 rounded object-contain flex-shrink-0">
+                        <?php endif; ?>
+                        <div>
+                            <h3 class="font-semibold text-gray-800"><?= htmlspecialchars($m['client']) ?></h3>
+                            <p class="text-sm text-gray-500"><?= htmlspecialchars($m['titre']) ?></p>
+                        </div>
                     </div>
                     <span class="inline-block px-3 py-1 text-xs font-medium rounded-full
                         <?= $m['phase_statut'] === 'en_cours' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600' ?>">
@@ -265,14 +270,19 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
     <header class="bg-white border-b border-gray-200">
         <div class="max-w-5xl mx-auto px-6 py-4">
             <div class="flex items-center justify-between">
-                <div>
-                    <div class="flex items-center gap-3">
-                        <h1 class="text-xl font-semibold text-gray-800"><?= htmlspecialchars($mission['client']) ?></h1>
-                        <?php if ($financeur): ?>
-                        <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium"><?= htmlspecialchars($financeur['nom']) ?></span>
-                        <?php endif; ?>
+                <div class="flex items-center gap-4">
+                    <?php if (!empty($mission['logo_client'])): ?>
+                    <img src="<?= htmlspecialchars($mission['logo_client']) ?>" alt="<?= htmlspecialchars($mission['client']) ?>" class="h-10 w-10 rounded-lg object-contain">
+                    <?php endif; ?>
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <h1 class="text-xl font-semibold text-gray-800"><?= htmlspecialchars($mission['client']) ?></h1>
+                            <?php if ($financeur): ?>
+                            <span class="text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-600 font-medium"><?= htmlspecialchars($financeur['nom']) ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <p class="text-sm text-gray-500 mt-0.5"><?= htmlspecialchars($mission['titre']) ?></p>
                     </div>
-                    <p class="text-sm text-gray-500 mt-0.5"><?= htmlspecialchars($mission['titre']) ?></p>
                 </div>
                 <div class="text-right text-sm text-gray-400">
                     <p><?= CONSULTANT_NAME ?></p>

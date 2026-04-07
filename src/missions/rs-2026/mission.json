@@ -1,0 +1,67 @@
+{
+    "client": "Resosign",
+    "titre": "Mission DSI-D — Pilotage SI & transformation digitale",
+    "code": "RS_2026_DSID",
+    "type": "dsi-d",
+    "objectif": "Structurer et piloter le SI Resosign : cadrage des besoins, priorisation des projets, accompagnement à la transformation digitale",
+    "date_debut": "Mars 2026",
+    "duree": "Accompagnement continu",
+    "consultant": "Serge Fornier",
+    "jours_total": null,
+    "jours_consommes": null,
+    "phase_actuelle": "Cadrage",
+    "phase_statut": "en_cours",
+    "financeur": null,
+    "logo_client": "/assets/logo-rs.png",
+    "modules": ["mission", "resumes", "messages", "documents", "actions"],
+    "intervenants": [
+        { "nom": "Chloé Falaize", "role": "Responsable projet — Resosign", "type": "sponsor" },
+        { "nom": "Serge Fornier", "role": "Consultant SI — La PME Digitale", "type": "consultant" }
+    ],
+    "gouvernance": {
+        "copil": ["Chloé Falaize", "Serge Fornier"],
+        "frequence": "Point hebdomadaire ou bimensuel"
+    },
+    "phases": [
+        {
+            "nom": "Cadrage",
+            "code": "cadrage",
+            "statut": "en_cours",
+            "description": "Définition des besoins sans restriction, priorisation, ateliers brainstorming avec les équipes",
+            "etapes": ["Ateliers brainstorming équipes", "Synthèse COPIL", "Priorisation des chantiers", "Définition du périmètre MVP"]
+        },
+        {
+            "nom": "Minimum fonctionnel",
+            "code": "mvp",
+            "statut": "a_venir",
+            "description": "Développement de la plateforme minimale : WPA + espace client",
+            "etapes": ["Spécifications fonctionnelles", "Développement WPA", "Espace client minimaliste", "Intégration n8n"]
+        },
+        {
+            "nom": "Dev spécifique",
+            "code": "dev",
+            "statut": "a_venir",
+            "description": "Développements sur mesure, intégrations, migration depuis Lapala",
+            "etapes": ["Développements spécifiques", "Migration Lapala → nouvelle plateforme", "Configuration Brevo", "Gestion des accès (AXT/Chiffreur)"]
+        },
+        {
+            "nom": "Production & exploitation",
+            "code": "prod",
+            "statut": "a_venir",
+            "description": "Mise en production, formation, maintenance continue",
+            "etapes": ["Déploiement", "Formation utilisateurs", "Maintenance & évolutions"]
+        }
+    ],
+    "livrables": [
+        "Cadrage des besoins et priorisation",
+        "Cahier des charges fonctionnel",
+        "Plateforme WPA minimale",
+        "Espace client Resosign",
+        "Intégrations (n8n, Brevo, AXT)"
+    ],
+    "bonnes_pratiques": [
+        "Les échanges passent par cet espace — moins d'emails dispersés",
+        "Le plan d'action est mis à jour chaque semaine",
+        "Les documents et questions sont directement suivis par le consultant"
+    ]
+}
