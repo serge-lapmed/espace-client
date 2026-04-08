@@ -20,7 +20,31 @@
 
 ### Étapes concrètes
 
-1. **Commit & push** (depuis le Mac ou Cowork quand les fichiers sont modifiés)
+#### Option A — Script deploy.sh (recommandé)
+
+1. **Commit & push** (depuis le Mac ou Cowork)
+   ```bash
+   cd ~/Documents\ \(H\)/01\ -\ TRAVAIL/LAB\ IA/projets/espace-client
+   git add -A
+   git commit -m "description des changements"
+   git push origin main
+   ```
+
+2. **Déployer sur O2switch** (SSH)
+   ```bash
+   cd ~/mission.lapmedigitale.fr
+   bash deploy.sh
+   ```
+   Le script fait automatiquement : git pull, copie src/ vers racine, et détecte les fichiers SQL à exécuter. Il affiche le contenu SQL à coller dans phpMyAdmin et la commande `touch` pour marquer chaque fichier comme exécuté.
+
+3. **SQL** (si le script en détecte)
+   - Copier le contenu SQL affiché par le script
+   - Coller dans phpMyAdmin → Exécuter
+   - Marquer comme fait : `touch sql/.done/nom-du-fichier.sql`
+
+#### Option B — Étapes manuelles
+
+1. **Commit & push** (depuis le Mac ou Cowork)
    ```bash
    cd ~/Documents\ \(H\)/01\ -\ TRAVAIL/LAB\ IA/projets/espace-client
    git add -A
