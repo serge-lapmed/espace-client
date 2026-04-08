@@ -593,6 +593,7 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
             <div class="md:col-span-3">
                 <?php if ($active_resume): ?>
                 <div class="bg-white rounded-lg border border-gray-200 p-6">
+                    <style>#resume-content img { max-width: 280px; height: auto; }</style>
                     <div id="resume-content" class="prose prose-sm max-w-none"></div>
                 </div>
                 <script>
