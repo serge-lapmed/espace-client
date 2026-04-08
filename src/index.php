@@ -13,13 +13,22 @@
  *   /admin.php           → gestion utilisateurs (admin only)
  */
 
-// --- Livrables HTML statiques (prez, BPMN, cartes…) ---
+// --- Fichiers statiques (livrables HTML, images des résumés…) ---
 // Gestion en PHP car %{DOCUMENT_ROOT} Apache ne résout pas sur O2switch mutualisé
 $_static_uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-if (preg_match('/\.html$/', $_static_uri)) {
+$_static_types = [
+    'html' => 'text/html; charset=utf-8',
+    'png'  => 'image/png',
+    'jpg'  => 'image/jpeg',
+    'jpeg' => 'image/jpeg',
+    'svg'  => 'image/svg+xml',
+    'pdf'  => 'application/pdf',
+];
+$_static_ext = strtolower(pathinfo($_static_uri, PATHINFO_EXTENSION));
+if (isset($_static_types[$_static_ext])) {
     $_static_file = __DIR__ . $_static_uri;
     if (file_exists($_static_file)) {
-        header('Content-Type: text/html; charset=utf-8');
+        header('Content-Type: ' . $_static_types[$_static_ext]);
         readfile($_static_file);
         exit;
     }
