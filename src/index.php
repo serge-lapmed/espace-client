@@ -639,6 +639,28 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
                 <p class="text-xs mt-1">Les livrables et documents de mission apparaîtront ici.</p>
             </div>
             <?php else: ?>
+            <?php
+                // --- Affichage inline d'un document HTML si view=ID ---
+                $view_id = isset($_GET['view']) ? (int)$_GET['view'] : 0;
+                $viewed_doc = null;
+                if ($view_id > 0) {
+                    foreach ($documents as $d) {
+                        if ((int)$d['id'] === $view_id && $d['type'] === 'html') {
+                            $viewed_doc = $d;
+                            break;
+                        }
+                    }
+                }
+                if ($viewed_doc): ?>
+                <div class="mb-6">
+                    <div class="flex items-center justify-between mb-2">
+                        <h3 class="text-sm font-medium text-gray-800"><?= htmlspecialchars($viewed_doc['titre']) ?></h3>
+                        <a href="/<?= $slug ?>?tab=documents" class="text-xs text-gray-500 hover:text-gray-700">✕ Fermer</a>
+                    </div>
+                    <iframe src="<?= htmlspecialchars($viewed_doc['path']) ?>" class="w-full border border-gray-200 rounded-lg" style="height:70vh;" frameborder="0"></iframe>
+                </div>
+                <?php endif; ?>
+            <?php // --- Liste des documents --- ?>
             <div class="space-y-3">
                 <?php foreach ($documents as $doc):
                     $icon = match($doc['type']) {
