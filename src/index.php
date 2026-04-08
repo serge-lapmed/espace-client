@@ -99,6 +99,14 @@ if (!$mission) {
 // Si on a un resume_id dans l'URL, forcer l'onglet résumés
 if ($resume_id) $active_tab = 'resumes';
 
+// Sécurité : si l'onglet demandé n'est pas dans les modules autorisés, rediriger vers le premier
+// (empêche un utilisateur externe de forcer ?tab=documents)
+$_role_modules = ['externe' => ['mission', 'resumes'], 'equipe' => ['mission', 'resumes', 'messages', 'documents', 'actions']];
+$_allowed = $_role_modules[$user['role']] ?? null;
+if ($_allowed !== null && !in_array($active_tab, $_allowed)) {
+    $active_tab = $_allowed[0] ?? 'resumes';
+}
+
 $resumes = list_resumes($mission_slug);
 render_mission($mission, $resumes, $resume_id, $user, $active_tab);
 
@@ -196,6 +204,20 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
     $modules = $mission['modules'] ?? ['resumes'];
     $financeur = $mission['financeur'] ?? null;
     $show_budget = in_array($user['role'], ['admin', 'dirigeant']);
+
+    // Filtrage des modules par rôle
+    // externe (BPI) : uniquement Mission + Résumés
+    // equipe : tout sauf le budget (déjà géré par $show_budget)
+    $role_modules = [
+        'externe' => ['mission', 'resumes'],
+        'equipe'  => ['mission', 'resumes', 'messages', 'documents', 'actions'],
+        'dirigeant' => null, // null = tous les modules
+        'admin' => null,
+    ];
+    $allowed = $role_modules[$user['role']] ?? null;
+    if ($allowed !== null) {
+        $modules = array_values(array_intersect($modules, $allowed));
+    }
     $slug = $mission['slug'];
 
     // Charger les données selon l'onglet actif
