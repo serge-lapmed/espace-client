@@ -4,11 +4,6 @@ RewriteBase /
 # Fichiers PHP directs (login, logout, admin)
 RewriteRule ^(login|logout|admin|mentions-legales)\.php$ $1.php [QSA,L]
 
-# Livrables mission (fichiers HTML statiques hors repo, un dossier par mission)
-# Tout chemin contenant un / et finissant par .html → servir le fichier directement
-RewriteCond %{DOCUMENT_ROOT}/$1 -f
-RewriteRule ^(.+\.html)$ $1 [L]
-
 # Ne pas réécrire les fichiers/dossiers existants (assets, etc.)
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
