@@ -6,7 +6,5 @@ mockup-design.jsx
 # Ne jamais commiter les credentials DB
 src/includes/config.php
 
-# Contenu mission — déployé en FTP, pas en git
-# Les résumés, donuts et mission.json vivent dans H:/Missions/missions/{slug}/resumes-ec/
+# Contenu mission — les résumés/donuts passent par FTP (hebdo.sh), pas git
 src/missions/*/resumes/
-src/missions/*/mission.json

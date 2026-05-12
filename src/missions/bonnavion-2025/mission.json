@@ -1,0 +1,69 @@
+{
+    "client": "Bonnavion Industrie",
+    "titre": "AMOA & Gouvernance SI — Projet Odoo",
+    "code": "BONNAVION_2025_SI",
+    "type": "amoa-gouvernance",
+    "statut": "en_cours",
+    "objectif": "Accompagner le projet Odoo, garantir la cohérence SI et jouer le rôle de contrepoids best-of-breed face à l'intégrateur",
+    "date_debut": "Janvier 2025",
+    "duree": "Accompagnement récurrent",
+    "consultant": "Serge Fornier",
+    "jours_total": null,
+    "jours_consommes": null,
+    "phase_actuelle": "Démarrage projet Odoo",
+    "phase_statut": "en_cours",
+    "financeur": null,
+    "logo_client": null,
+    "modules": ["mission", "resumes", "messages", "documents", "actions"],
+    "intervenants": [
+        { "nom": "André Bonnavion", "role": "Dirigeant — Bonnavion Industrie", "type": "sponsor" },
+        { "nom": "Christina", "role": "Cheffe de projet — CamptoCamp", "type": "partenaire" },
+        { "nom": "Serge Fornier", "role": "Consultant SI — La PME Digitale", "type": "consultant" }
+    ],
+    "gouvernance": {
+        "copil": ["André Bonnavion", "Serge Fornier"],
+        "frequence": "Point régulier à la demande"
+    },
+    "phases": [
+        {
+            "nom": "Bootcamp Odoo",
+            "code": "bootcamp",
+            "statut": "termine",
+            "description": "Formation équipe avec CamptoCamp, 13h/20h consommées, 7h reportées sur le projet",
+            "etapes": ["Formation équipe Sébastien/Bonnavion", "Prise en main Odoo", "Cadrage besoins initiaux"]
+        },
+        {
+            "nom": "Démarrage projet",
+            "code": "demarrage",
+            "statut": "en_cours",
+            "description": "Lancement du paramétrage Odoo avec CamptoCamp, supervision AMOA",
+            "etapes": ["Paramétrage CamptoCamp en cours", "Suivi Studio vs standard", "Clarification coûts upgrades"]
+        },
+        {
+            "nom": "Déploiement & Recette",
+            "code": "deploiement",
+            "statut": "a_venir",
+            "description": "Tests fonctionnels, recette interne Bonnavion, mise en production",
+            "etapes": ["Recette interne (objectif autonomie)", "Correction bugs", "Bascule production"]
+        },
+        {
+            "nom": "AMOA pérenne",
+            "code": "amoa",
+            "statut": "a_venir",
+            "description": "Accompagnement récurrent : gouvernance SI, arbitrages, documentation DSI",
+            "etapes": ["Gouvernance SI formalisée", "Documentation DSI Bonnavion", "Arbitrages best-of-breed", "Points réguliers André + Flavier"]
+        }
+    ],
+    "livrables": [
+        "Cadre de gouvernance SI",
+        "Documentation DSI (même sans DSI interne)",
+        "Arbitrages best-of-breed vs tout-Odoo",
+        "Suivi coûts Studio & upgrades"
+    ],
+    "bonnes_pratiques": [
+        "Réduire au maximum la partie Studio pour maîtriser les coûts d'upgrade",
+        "Bonnavion doit monter en autonomie sur la recette",
+        "Les échanges passent par cet espace",
+        "Le plan d'action est mis à jour à chaque point"
+    ]
+}

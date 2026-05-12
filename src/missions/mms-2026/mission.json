@@ -1,0 +1,64 @@
+{
+    "client": "MMS Rhône-Alpes",
+    "titre": "Cadrage SI — Feuille de route",
+    "code": "MMS_2026_SI",
+    "type": "cadrage-si",
+    "statut": "amorçage",
+    "objectif": "Cadrage SI, macro-processus, analyse outils achats/ventes, feuille de route",
+    "date_debut": "À confirmer",
+    "duree": "4 à 6 semaines",
+    "consultant": "Serge Fornier",
+    "jours_total": 8,
+    "jours_consommes": 0,
+    "phase_actuelle": "Phase 0 — Amorçage",
+    "phase_statut": "a_venir",
+    "modules": ["mission", "resumes", "messages", "documents", "actions"],
+    "intervenants": [
+        { "nom": "Sébastien Bay", "role": "Dirigeant", "type": "sponsor" },
+        { "nom": "Serge Fornier", "role": "Consultant SI — La PME Digitale", "type": "consultant" }
+    ],
+    "gouvernance": {
+        "copil": ["Sébastien Bay", "Serge Fornier"],
+        "frequence": "Point hebdomadaire ou à la demande"
+    },
+    "phases": [
+        {
+            "nom": "Amorçage",
+            "code": "phase_0",
+            "statut": "a_venir",
+            "description": "Validation du périmètre, planification, accès aux données"
+        },
+        {
+            "nom": "Audit terrain",
+            "code": "phase_a",
+            "statut": "a_venir",
+            "description": "Entretiens, cartographie SI, évaluation maturité digitale",
+            "etapes": ["Entretien dirigeant", "Cartographie SI (macro)", "Cartographie processus (macro)"]
+        },
+        {
+            "nom": "Analyse & Diagnostic",
+            "code": "phase_b",
+            "statut": "a_venir",
+            "description": "Analyse comparative outils facturation et traçabilité achats",
+            "etapes": ["Analyse outils existants", "Benchmark solutions", "Identification des gains"]
+        },
+        {
+            "nom": "Recommandations",
+            "code": "phase_c",
+            "statut": "a_venir",
+            "description": "Feuille de route priorisée, restitution",
+            "etapes": ["Feuille de route priorisée", "Restitution orale"]
+        }
+    ],
+    "livrables": [
+        "Compte rendu de cadrage",
+        "Cartographie macro-processus (actuel + cible)",
+        "Analyse comparative outils facturation et traçabilité achats",
+        "Feuille de route priorisée"
+    ],
+    "bonnes_pratiques": [
+        "Les échanges passent par cet espace — moins d'emails dispersés",
+        "Le plan d'action est mis à jour chaque semaine",
+        "Les documents et questions sont directement suivis par le consultant"
+    ]
+}

@@ -46,16 +46,10 @@ git push origin main 2>&1
 echo "      ✓ Push OK"
 echo ""
 
-# --- 2. SSH : git pull ---
-echo "[2/3] SSH → git pull sur O2switch..."
-ssh "$SSH_HOST" "cd $REMOTE_DIR && git pull origin main" 2>&1
-echo "      ✓ Pull OK"
-echo ""
-
-# --- 3. SSH : copie src/ vers racine ---
-echo "[3/3] SSH → copie src/ vers racine web..."
-ssh "$SSH_HOST" "cd $REMOTE_DIR && cp -r src/* . && cp src/.htaccess ." 2>&1
-echo "      ✓ Fichiers copiés"
+# --- 2. SSH : git pull + copie (une seule connexion) ---
+echo "[2/2] SSH → git pull + copie sur O2switch..."
+ssh "$SSH_HOST" "cd $REMOTE_DIR && git pull origin main && cp -r src/* . && cp src/.htaccess ." 2>&1
+echo "      ✓ Pull + copie OK"
 
 echo ""
 echo "══════════════════════════════════════════════════════════"
