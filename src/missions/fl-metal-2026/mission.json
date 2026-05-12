@@ -3,6 +3,7 @@
     "titre": "Mission SI — Module BPI",
     "code": "FLM_2026_SI",
     "type": "diagnostic-si",
+    "statut": "en_cours",
     "objectif": "Structurer et fiabiliser le SI pour accompagner la croissance",
     "date_debut": "23 mars 2026",
     "duree": "3 à 6 mois",

@@ -160,6 +160,29 @@ function render_user_bar(array $user): void {
 }
 
 function render_home(array $missions, array $user): void {
+    $type_labels = [
+        'diagnostic-si' => 'Diagnostic SI',
+        'cadrage-si' => 'Cadrage SI',
+        'accompagnement-transfo' => 'Transformation',
+        'amoa-gouvernance' => 'AMOA & Gouvernance',
+        'dsi-d' => 'DSI externalisée',
+    ];
+    $statut_labels = [
+        'amorçage' => 'Amorçage',
+        'en_cours' => 'En cours',
+        'terminee' => 'Terminée',
+        'archivee' => 'Archivée',
+    ];
+    $statut_colors = [
+        'amorçage' => 'bg-yellow-100 text-yellow-700',
+        'en_cours' => 'bg-blue-100 text-blue-700',
+        'terminee' => 'bg-green-100 text-green-700',
+        'archivee' => 'bg-gray-100 text-gray-500',
+    ];
+
+    // Séparer actives et terminées
+    $actives = array_filter($missions, fn($m) => in_array($m['statut'] ?? 'en_cours', ['amorçage', 'en_cours']));
+    $terminees = array_filter($missions, fn($m) => in_array($m['statut'] ?? '', ['terminee', 'archivee']));
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -179,9 +202,17 @@ function render_home(array $missions, array $user): void {
         </div>
     </header>
     <main class="max-w-4xl mx-auto px-6 py-10">
-        <h2 class="text-lg font-medium text-gray-700 mb-6">Missions en cours</h2>
-        <div class="space-y-4">
-        <?php foreach ($missions as $m): ?>
+
+        <!-- MISSIONS ACTIVES -->
+        <h2 class="text-lg font-medium text-gray-700 mb-4">Missions en cours</h2>
+        <?php if (empty($actives)): ?>
+            <p class="text-gray-400 text-center py-6 mb-8">Aucune mission active.</p>
+        <?php else: ?>
+        <div class="space-y-3 mb-10">
+        <?php foreach ($actives as $m):
+            $statut = $m['statut'] ?? 'en_cours';
+            $type = $m['type'] ?? '';
+        ?>
             <a href="/<?= $m['slug'] ?>" class="block bg-white rounded-lg border border-gray-200 p-5 hover:border-blue-400 hover:shadow-sm transition">
                 <div class="flex items-center justify-between">
                     <div class="flex items-center gap-3">
@@ -189,21 +220,60 @@ function render_home(array $missions, array $user): void {
                         <img src="<?= htmlspecialchars($m['logo_client']) ?>" alt="" class="h-8 w-8 rounded object-contain flex-shrink-0">
                         <?php endif; ?>
                         <div>
-                            <h3 class="font-semibold text-gray-800"><?= htmlspecialchars($m['client']) ?></h3>
-                            <p class="text-sm text-gray-500"><?= htmlspecialchars($m['titre']) ?></p>
+                            <div class="flex items-center gap-2">
+                                <h3 class="font-semibold text-gray-800"><?= htmlspecialchars($m['client']) ?></h3>
+                                <span class="px-2 py-0.5 text-xs font-medium rounded-full <?= $statut_colors[$statut] ?? 'bg-gray-100 text-gray-600' ?>">
+                                    <?= $statut_labels[$statut] ?? $statut ?>
+                                </span>
+                            </div>
+                            <p class="text-sm text-gray-500 mt-0.5"><?= htmlspecialchars($m['titre']) ?></p>
+                            <?php if ($type && isset($type_labels[$type])): ?>
+                            <span class="text-xs text-gray-400"><?= $type_labels[$type] ?></span>
+                            <?php endif; ?>
                         </div>
                     </div>
-                    <span class="inline-block px-3 py-1 text-xs font-medium rounded-full
-                        <?= $m['phase_statut'] === 'en_cours' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600' ?>">
-                        <?= htmlspecialchars($m['phase_actuelle']) ?>
+                    <div class="text-right flex-shrink-0 ml-4">
+                        <span class="inline-block px-3 py-1 text-xs font-medium rounded-full
+                            <?= ($m['phase_statut'] ?? '') === 'en_cours' ? 'bg-blue-50 text-blue-600' : 'bg-gray-50 text-gray-500' ?>">
+                            <?= htmlspecialchars($m['phase_actuelle'] ?? '—') ?>
+                        </span>
+                        <?php if (!empty($m['jours_total'])): ?>
+                        <p class="text-xs text-gray-400 mt-1"><?= $m['jours_consommes'] ?? 0 ?>/<?= $m['jours_total'] ?>j</p>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </a>
+        <?php endforeach; ?>
+        </div>
+        <?php endif; ?>
+
+        <!-- MISSIONS TERMINÉES -->
+        <?php if (!empty($terminees)): ?>
+        <h2 class="text-sm font-medium text-gray-400 uppercase tracking-wide mb-3">Missions précédentes</h2>
+        <div class="space-y-2">
+        <?php foreach ($terminees as $m):
+            $statut = $m['statut'] ?? 'terminee';
+        ?>
+            <a href="/<?= $m['slug'] ?>" class="block bg-white rounded-lg border border-gray-100 p-4 opacity-60 hover:opacity-80 transition">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <?php if (!empty($m['logo_client'])): ?>
+                        <img src="<?= htmlspecialchars($m['logo_client']) ?>" alt="" class="h-6 w-6 rounded object-contain flex-shrink-0 grayscale">
+                        <?php endif; ?>
+                        <div>
+                            <h3 class="font-medium text-gray-600 text-sm"><?= htmlspecialchars($m['client']) ?></h3>
+                            <p class="text-xs text-gray-400"><?= htmlspecialchars($m['titre']) ?></p>
+                        </div>
+                    </div>
+                    <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-50 text-green-600">
+                        <?= $statut_labels[$statut] ?? 'Terminée' ?>
                     </span>
                 </div>
             </a>
         <?php endforeach; ?>
-        <?php if (empty($missions)): ?>
-            <p class="text-gray-400 text-center py-8">Aucune mission accessible.</p>
-        <?php endif; ?>
         </div>
+        <?php endif; ?>
+
     </main>
 </body>
 </html>

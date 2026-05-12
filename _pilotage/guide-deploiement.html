@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guide Déploiement — Espace Client</title>
+<style>
+  :root { --blue: #2563eb; --green: #16a34a; --orange: #d97706; --red: #ef4444; --gray: #6b7280; --bg: #f9fafb; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: var(--bg); color: #1a1a2e; line-height: 1.6; padding: 2rem; max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+  h2 { font-size: 1.15rem; margin: 2rem 0 0.75rem; padding-bottom: 0.5rem; border-bottom: 2px solid #e5e7eb; }
+  h3 { font-size: 1rem; margin: 1.25rem 0 0.5rem; color: var(--blue); }
+  p { margin-bottom: 0.75rem; }
+  .subtitle { color: var(--gray); font-size: 0.9rem; margin-bottom: 2rem; }
+
+  /* Architecture diagram */
+  .archi { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.5rem; margin: 1rem 0; }
+  .archi-row { display: flex; gap: 1rem; align-items: center; margin: 0.75rem 0; }
+  .archi-box { padding: 0.5rem 1rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; color: white; text-align: center; min-width: 160px; }
+  .archi-arrow { color: var(--gray); font-size: 1.2rem; }
+  .archi-label { font-size: 0.75rem; color: var(--gray); text-align: center; }
+  .bg-blue { background: var(--blue); }
+  .bg-green { background: var(--green); }
+  .bg-orange { background: var(--orange); }
+  .bg-dark { background: #1a1a2e; }
+
+  /* Steps */
+  .step { background: white; border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.25rem; margin: 0.75rem 0; position: relative; }
+  .step-number { position: absolute; top: -10px; left: 16px; background: var(--blue); color: white; width: 24px; height: 24px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; }
+  .step-title { font-weight: 700; margin-bottom: 0.5rem; padding-left: 20px; }
+  .step p { font-size: 0.9rem; color: #374151; }
+
+  /* Code blocks */
+  pre { background: #1a1a2e; color: #e5e7eb; padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.82rem; line-height: 1.5; margin: 0.5rem 0; }
+  code { font-family: 'SF Mono', 'Menlo', 'Monaco', monospace; }
+  .inline-code { background: #f3f4f6; padding: 0.15rem 0.4rem; border-radius: 3px; font-size: 0.85rem; color: #1a1a2e; }
+  .comment { color: #6b7280; }
+  .highlight { color: #fbbf24; }
+
+  /* Checklist */
+  .checklist { list-style: none; padding: 0; }
+  .checklist li { padding: 0.5rem 0; padding-left: 1.75rem; position: relative; font-size: 0.9rem; border-bottom: 1px solid #f3f4f6; }
+  .checklist li:last-child { border: none; }
+  .checklist li::before { content: '☐'; position: absolute; left: 0; color: var(--blue); font-size: 1.1rem; }
+
+  /* Alert boxes */
+  .alert { padding: 0.75rem 1rem; border-radius: 6px; font-size: 0.85rem; margin: 0.75rem 0; }
+  .alert-info { background: #eff6ff; border-left: 3px solid var(--blue); color: #1e40af; }
+  .alert-warn { background: #fffbeb; border-left: 3px solid var(--orange); color: #92400e; }
+  .alert-ok { background: #f0fdf4; border-left: 3px solid var(--green); color: #166534; }
+
+  /* Tables */
+  table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.85rem; }
+  th { background: #f3f4f6; text-align: left; padding: 0.5rem 0.75rem; font-weight: 600; }
+  td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #f3f4f6; }
+
+  /* Sections */
+  .section { margin-bottom: 2.5rem; }
+
+  /* Toggle */
+  details { margin: 0.5rem 0; }
+  summary { cursor: pointer; font-weight: 600; font-size: 0.9rem; color: var(--blue); padding: 0.5rem 0; }
+  summary:hover { text-decoration: underline; }
+</style>
+</head>
+<body>
+
+<h1>Guide Déploiement — Espace Client</h1>
+<p class="subtitle">mission.lapmedigitale.fr — Pas-à-pas complet, de la config initiale au déploiement régulier.</p>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section">
+<h2>Ce que j'ai fait (comprendre l'existant)</h2>
+
+<div class="archi">
+  <p style="font-size:0.85rem; color:var(--gray); margin-bottom:1rem;">L'espace client a 3 types de contenu qui arrivent sur O2switch par 3 chemins différents :</p>
+
+  <div class="archi-row">
+    <div class="archi-box bg-blue">Code PHP</div>
+    <div><div class="archi-arrow">→</div><div class="archi-label">git push + SSH</div></div>
+    <div class="archi-box bg-dark">O2switch</div>
+    <div class="archi-label" style="margin-left:1rem;">deploy.sh</div>
+  </div>
+
+  <div class="archi-row">
+    <div class="archi-box bg-green">Résumés, donuts, mission.json</div>
+    <div><div class="archi-arrow">→</div><div class="archi-label">FTP</div></div>
+    <div class="archi-box bg-dark">O2switch</div>
+    <div class="archi-label" style="margin-left:1rem;">hebdo.sh</div>
+  </div>
+
+  <div class="archi-row">
+    <div class="archi-box bg-orange">Google Docs partagés</div>
+    <div><div class="archi-arrow">→</div><div class="archi-label">Drive sync + hebdo.sh</div></div>
+    <div class="archi-box bg-dark">Liens dans BDD</div>
+    <div class="archi-label" style="margin-left:1rem;">SQL auto</div>
+  </div>
+</div>
+
+<p><strong>Pourquoi séparer ?</strong> Le code (PHP) vit dans un repo git — c'est propre, versionné, on peut revenir en arrière. Les docs clients (résumés, PDF) n'ont rien à faire dans un repo : ils passent en FTP.</p>
+
+<h3>Ce qu'on a produit aujourd'hui</h3>
+<table>
+  <tr><th>Fichier</th><th>Ce que c'est</th></tr>
+  <tr><td><code class="inline-code">src/missions/bonnavion-2025/mission.json</code></td><td>Nouvelle mission Bonnavion dans le repo</td></tr>
+  <tr><td><code class="inline-code">src/missions/mms-2026/mission.json</code></td><td>Nouvelle mission MMS dans le repo</td></tr>
+  <tr><td><code class="inline-code">src/index.php</code></td><td>Page d'accueil refontée (actives + terminées)</td></tr>
+  <tr><td><code class="inline-code">src/includes/config.php</code></td><td>Tri des missions par statut</td></tr>
+  <tr><td><code class="inline-code">_scripts/deploy.sh</code></td><td>Script déploiement code (réécrit)</td></tr>
+  <tr><td><code class="inline-code">_scripts/open-ec.sh</code></td><td>Script ouverture mission (réécrit)</td></tr>
+  <tr><td><code class="inline-code">_scripts/hebdo.sh</code></td><td>Script hebdo contenu (réécrit)</td></tr>
+  <tr><td><code class="inline-code">_pilotage/DEPLOIEMENT.md</code></td><td>Doc de référence technique</td></tr>
+</table>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section">
+<h2>Étape 1 — Créer le compte FTP sur O2switch</h2>
+
+<p>Tu dois créer un compte FTP dédié qui pointe vers le dossier de l'espace client. Ce compte sera utilisé par <code class="inline-code">open-ec.sh</code> et <code class="inline-code">hebdo.sh</code>.</p>
+
+<div class="step">
+  <div class="step-number">1</div>
+  <p class="step-title">Se connecter au cPanel O2switch</p>
+  <p>Aller sur ton admin O2switch → cPanel. Chercher la section <strong>"Comptes FTP"</strong> (ou "FTP Accounts").</p>
+</div>
+
+<div class="step">
+  <div class="step-number">2</div>
+  <p class="step-title">Créer le compte FTP</p>
+  <p>Remplir le formulaire :</p>
+  <table>
+    <tr><th>Champ</th><th>Valeur</th></tr>
+    <tr><td>Connexion / Login</td><td><code class="inline-code">contenu@mission.lapmedigitale.fr</code></td></tr>
+    <tr><td>Mot de passe</td><td>Générer un mot de passe fort (le noter !)</td></tr>
+    <tr><td>Répertoire</td><td><code class="inline-code">/home/qufi1696/mission.lapmedigitale.fr</code></td></tr>
+    <tr><td>Quota</td><td>Illimité</td></tr>
+  </table>
+  <div class="alert alert-warn">⚠ Le répertoire doit pointer vers la racine du site <code class="inline-code">mission.lapmedigitale.fr</code>, pas vers <code class="inline-code">/home/qufi1696/</code>. Vérifie que c'est bien le cas.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">3</div>
+  <p class="step-title">Configurer ~/.netrc sur ton Mac</p>
+  <p>Ouvre le Terminal et tape :</p>
+  <pre><code><span class="comment"># Créer ou éditer le fichier</span>
+nano ~/.netrc</code></pre>
+  <p>Coller ces 3 lignes (remplacer le mot de passe) :</p>
+  <pre><code>machine ftp.qufi1696.odns.fr
+login contenu@mission.lapmedigitale.fr
+password <span class="highlight">TON_MOT_DE_PASSE_FTP</span></code></pre>
+  <p>Sauvegarder (Ctrl+O, Enter, Ctrl+X), puis sécuriser :</p>
+  <pre><code>chmod 600 ~/.netrc</code></pre>
+</div>
+
+<div class="step">
+  <div class="step-number">4</div>
+  <p class="step-title">Tester la connexion FTP</p>
+  <pre><code><span class="comment"># Test rapide : lister le contenu du dossier missions/</span>
+curl -s -k --ftp-ssl --netrc "ftp://ftp.qufi1696.odns.fr/missions/"</code></pre>
+  <p>Tu devrais voir les dossiers <code class="inline-code">fl-metal-2026</code> et <code class="inline-code">rs-2026</code> (ceux déjà en prod).</p>
+  <div class="alert alert-ok">✓ Si ça liste des fichiers, le FTP est prêt.</div>
+  <div class="alert alert-warn">✗ Si erreur "Login denied" → vérifier le mot de passe dans ~/.netrc.<br>✗ Si erreur SSL → essayer sans <code class="inline-code">--ftp-ssl</code> ou vérifier dans cPanel que FTPS est activé.</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section">
+<h2>Étape 2 — Installer bcrypt (si pas encore fait)</h2>
+
+<div class="step">
+  <div class="step-number">1</div>
+  <p class="step-title">Vérifier / installer</p>
+  <pre><code><span class="comment"># Tester si bcrypt est installé</span>
+python3 -c "import bcrypt; print('OK')"
+
+<span class="comment"># Si "ModuleNotFoundError" :</span>
+pip3 install bcrypt</code></pre>
+  <div class="alert alert-info">bcrypt sert à générer les mots de passe hashés pour les comptes utilisateurs. C'est utilisé par <code class="inline-code">open-ec.sh</code>.</div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section">
+<h2>Étape 3 — Premier déploiement (le faire une fois)</h2>
+
+<p>On va pousser le code qu'on a produit aujourd'hui, puis ouvrir les deux nouvelles missions.</p>
+
+<h3>3a. Pousser le code</h3>
+
+<div class="step">
+  <div class="step-number">1</div>
+  <p class="step-title">Ouvrir le Terminal, aller dans le repo</p>
+  <pre><code>cd ~/Documents\ \(H\)/01\ -\ TRAVAIL/LAB\ IA/projets/espace-client</code></pre>
+</div>
+
+<div class="step">
+  <div class="step-number">2</div>
+  <p class="step-title">Lancer deploy.sh</p>
+  <pre><code>./_scripts/deploy.sh "V1.5 — multi-missions Bonnavion + MMS + statut"</code></pre>
+  <p>Le script va : git add → commit → push → SSH sur O2switch → git pull → copier les fichiers.</p>
+  <div class="alert alert-ok">✓ Si tu vois "✓ Code déployé", c'est bon.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">3</div>
+  <p class="step-title">Vérifier</p>
+  <p>Aller sur <a href="https://mission.lapmedigitale.fr" target="_blank">mission.lapmedigitale.fr</a> et te connecter en admin. Tu dois voir les 4 missions dans la liste.</p>
+  <div class="alert alert-warn">⚠ Les missions Bonnavion et MMS apparaîtront dans la liste mais ne seront pas encore cliquables — il faut d'abord les ouvrir en FTP (étape suivante).</div>
+</div>
+
+<h3>3b. Ouvrir les missions en FTP</h3>
+
+<div class="step">
+  <div class="step-number">4</div>
+  <p class="step-title">Ouvrir Bonnavion</p>
+  <pre><code>./_scripts/open-ec.sh bonnavion-2025 andre@bonnavion.fr "André Bonnavion"</code></pre>
+  <p>Le script va :</p>
+  <ul style="font-size:0.9rem; padding-left:1.5rem; margin:0.5rem 0;">
+    <li>Créer <code class="inline-code">missions/bonnavion-2025/</code> sur O2switch</li>
+    <li>Uploader mission.json</li>
+    <li>Générer le SQL + mot de passe temporaire</li>
+  </ul>
+  <div class="alert alert-info">📝 Note le mot de passe temporaire affiché dans le terminal !</div>
+</div>
+
+<div class="step">
+  <div class="step-number">5</div>
+  <p class="step-title">Ouvrir MMS</p>
+  <pre><code>./_scripts/open-ec.sh mms-2026 sebastien.bay@mms-ra.fr "Sébastien Bay"</code></pre>
+  <div class="alert alert-warn">⚠ Vérifie l'email de Sébastien Bay avant de lancer — je n'ai pas l'email confirmé.</div>
+</div>
+
+<div class="step">
+  <div class="step-number">6</div>
+  <p class="step-title">Exécuter les SQL</p>
+  <p>Deux options :</p>
+  <p><strong>Option A (recommandé) :</strong> aller sur <a href="https://mission.lapmedigitale.fr/admin.php" target="_blank">/admin.php</a>, déplier "Ajouter un utilisateur", et créer les comptes directement dans l'interface.</p>
+  <p><strong>Option B :</strong> copier le SQL affiché par le script → coller dans phpMyAdmin → exécuter.</p>
+</div>
+
+<div class="step">
+  <div class="step-number">7</div>
+  <p class="step-title">Tester</p>
+  <ul class="checklist">
+    <li>Se connecter en tant qu'André Bonnavion → voit la mission Bonnavion</li>
+    <li>Se connecter en tant que Sébastien Bay → voit la mission MMS</li>
+    <li>Se connecter en admin → voit les 4 missions, actives triées en premier</li>
+  </ul>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section">
+<h2>Étape 4 — Usage hebdomadaire (la routine)</h2>
+
+<p>Chaque semaine, après avoir rédigé tes résumés :</p>
+
+<div class="step">
+  <div class="step-number">1</div>
+  <p class="step-title">Rédiger le résumé</p>
+  <p>Créer le fichier dans le dossier mission sur H:/ :</p>
+  <pre><code><span class="comment"># Exemple pour FL Metal, semaine 20</span>
+H:/Missions/missions/FL_METAL_2026-ms/resumes-ec/2026-S20.md</code></pre>
+</div>
+
+<div class="step">
+  <div class="step-number">2</div>
+  <p class="step-title">Lancer hebdo.sh</p>
+  <pre><code>cd ~/Documents\ \(H\)/01\ -\ TRAVAIL/LAB\ IA/projets/espace-client
+./_scripts/hebdo.sh S20</code></pre>
+  <p>Le script scanne toutes les missions, uploade les nouveaux fichiers, et génère le SQL si des documents Google Docs ont été ajoutés dans <code class="inline-code">partage-shared/</code>.</p>
+</div>
+
+<div class="step">
+  <div class="step-number">3</div>
+  <p class="step-title">SQL si nécessaire</p>
+  <p>Si le script affiche "SQL généré", exécuter le fichier indiqué sur phpMyAdmin.</p>
+  <p>Si rien à insérer, c'est fini.</p>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section">
+<h2>Récap : quand utiliser quoi</h2>
+
+<table>
+  <tr><th>Situation</th><th>Script</th><th>Fréquence</th></tr>
+  <tr><td>J'ai modifié du code PHP ou la config</td><td><pre style="margin:0;padding:0.3rem 0.5rem;font-size:0.8rem;">./_scripts/deploy.sh "message"</pre></td><td>Ponctuel</td></tr>
+  <tr><td>Nouvelle mission à ouvrir</td><td><pre style="margin:0;padding:0.3rem 0.5rem;font-size:0.8rem;">./_scripts/open-ec.sh slug email "Nom"</pre></td><td>Par mission</td></tr>
+  <tr><td>Mise à jour hebdo (résumés, docs)</td><td><pre style="margin:0;padding:0.3rem 0.5rem;font-size:0.8rem;">./_scripts/hebdo.sh S20</pre></td><td>Chaque lundi</td></tr>
+</table>
+
+<div class="alert alert-info">
+  <strong>Automatisation future :</strong> quand tu es à l'aise, tu peux ajouter <code class="inline-code">hebdo.sh</code> en cron pour qu'il tourne tout seul chaque lundi à 7h. La ligne est dans DEPLOIEMENT.md. Pas urgent — commence par le faire manuellement quelques semaines.
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════ -->
+<div class="section">
+<h2>Accès rapides</h2>
+<table>
+  <tr><th>Quoi</th><th>Où</th></tr>
+  <tr><td>Site prod</td><td><a href="https://mission.lapmedigitale.fr" target="_blank">mission.lapmedigitale.fr</a></td></tr>
+  <tr><td>Admin</td><td><a href="https://mission.lapmedigitale.fr/admin.php" target="_blank">mission.lapmedigitale.fr/admin.php</a></td></tr>
+  <tr><td>phpMyAdmin</td><td>cPanel O2switch → phpMyAdmin → base <code class="inline-code">qufi1696_mission</code></td></tr>
+  <tr><td>GitHub</td><td><a href="https://github.com/serge-lapmed/espace-client" target="_blank">github.com/serge-lapmed/espace-client</a></td></tr>
+  <tr><td>Repo local</td><td><code class="inline-code">H:/01 - TRAVAIL/LAB IA/projets/espace-client</code></td></tr>
+  <tr><td>Missions H:/</td><td><code class="inline-code">H:/01 - TRAVAIL/Missions/missions/*-ms</code></td></tr>
+  <tr><td>Scripts</td><td><code class="inline-code">H:/01 - TRAVAIL/LAB IA/projets/espace-client/_scripts/</code></td></tr>
+  <tr><td>Doc technique</td><td><code class="inline-code">_pilotage/DEPLOIEMENT.md</code></td></tr>
+</table>
+</div>
+
+<p style="text-align:center; color:var(--gray); font-size:0.8rem; margin-top:3rem;">
+  Guide généré le 12 mai 2026 — La PME Digitale
+</p>
+
+</body>
+</html>

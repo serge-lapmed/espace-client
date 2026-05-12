@@ -1,67 +1,91 @@
 {
     "client": "Resosign",
-    "titre": "Mission DSI-D — Pilotage SI & transformation digitale",
-    "code": "RS_2026_DSID",
-    "type": "dsi-d",
-    "objectif": "Structurer et piloter le SI Resosign : cadrage des besoins, priorisation des projets, accompagnement à la transformation digitale",
-    "date_debut": "Mars 2026",
-    "duree": "Accompagnement continu",
+    "titre": "Refonte outils & plateforme WPA",
+    "code": "RS_2026",
+    "type": "accompagnement-transfo",
+    "statut": "en_cours",
+    "objectif": "Construire la plateforme de coordination Resosign : gestion des campagnes, app terrain poseurs, portail client — en remplacement de resoprod",
+    "date_debut": "Avril 2026",
+    "duree": "10 mois (2026) + renouvellement 2027 visé",
     "consultant": "Serge Fornier",
     "jours_total": null,
     "jours_consommes": null,
-    "phase_actuelle": "Cadrage",
+    "phase_actuelle": "S1 — Cadrage final + Setup",
     "phase_statut": "en_cours",
     "financeur": null,
     "logo_client": "/assets/logo-rs.jpeg",
     "modules": ["mission", "resumes", "messages", "documents", "actions"],
     "intervenants": [
         { "nom": "Chloé Falaize", "role": "Responsable projet — Resosign", "type": "sponsor" },
+        { "nom": "Kevin", "role": "Développeur & intégrateur — Agence HIC", "type": "partenaire" },
         { "nom": "Serge Fornier", "role": "Consultant SI — La PME Digitale", "type": "consultant" }
     ],
     "gouvernance": {
-        "copil": ["Chloé Falaize", "Serge Fornier"],
-        "frequence": "Point hebdomadaire ou bimensuel"
+        "copil": ["Chloé Falaize", "Kevin", "Serge Fornier"],
+        "frequence": "Point hebdomadaire (jeudi 14h)"
     },
     "phases": [
         {
-            "nom": "Cadrage",
+            "nom": "Cadrage besoins & priorisation",
             "code": "cadrage",
+            "statut": "termine",
+            "description": "Ateliers métier, recueil des besoins par profil, MoSCoW, CdC fonctionnel",
+            "etapes": ["Ateliers brainstorming équipes", "GT Transfo Digitale #1", "Cahier des charges v0.2", "Priorisation MoSCoW (9 Must Have)"]
+        },
+        {
+            "nom": "S1 — Cadrage final + Setup",
+            "code": "s1",
             "statut": "en_cours",
-            "description": "Définition des besoins sans restriction, priorisation, ateliers brainstorming avec les équipes",
-            "etapes": ["Ateliers brainstorming équipes", "Synthèse COPIL", "Priorisation des chantiers", "Définition du périmètre MVP"]
+            "description": "Validation périmètre MVP, dictionnaire acteurs, workflow, infra de base",
+            "etapes": ["Valider dictionnaire acteurs avec Chloé", "Valider workflow 10 étapes", "Caler dates séquençage S1-S6", "RACI mission", "Kevin : setup infra"]
         },
         {
-            "nom": "Minimum fonctionnel",
-            "code": "mvp",
+            "nom": "S2 — Réception matériel",
+            "code": "s2",
             "statut": "a_venir",
-            "description": "Développement de la plateforme minimale : WPA + espace client",
-            "etapes": ["Spécifications fonctionnelles", "Développement WPA", "Espace client minimaliste", "Intégration n8n"]
+            "description": "Notification poseur, lien confirmation réception, alerte 3 jours",
+            "etapes": ["Workflow notification matériel expédié", "Lien confirmation sans compte (EMA)", "Alerte RS si pas de confirmation", "Recette avec Karine/Isabelle"]
         },
         {
-            "nom": "Dev spécifique",
-            "code": "dev",
+            "nom": "S3 — Clôture campagne",
+            "code": "s3",
             "statut": "a_venir",
-            "description": "Développements sur mesure, intégrations, migration depuis Lapala",
-            "etapes": ["Développements spécifiques", "Migration Lapala → nouvelle plateforme", "Configuration Brevo", "Gestion des accès (AXT/Chiffreur)"]
+            "description": "Photos fin de chantier, validation RS, galerie client, email clôture ZIP",
+            "etapes": ["Upload photos mobile (EMA)", "Validation photos (RS)", "Galerie client + ZIP par site", "Email clôture automatique"]
         },
         {
-            "nom": "Production & exploitation",
-            "code": "prod",
+            "nom": "S4 — Vue suivi + Assignation",
+            "code": "s4",
             "statut": "a_venir",
-            "description": "Mise en production, formation, maintenance continue",
-            "etapes": ["Déploiement", "Formation utilisateurs", "Maintenance & évolutions"]
+            "description": "Vue avancement « Amazon » tous acteurs, assignation poseur avec notifications",
+            "etapes": ["Vue avancement campagne/site", "Notifications assignation poseur", "Paramétrage alertes par acteur"]
+        },
+        {
+            "nom": "S5 — Recette globale",
+            "code": "s5",
+            "statut": "a_venir",
+            "description": "Tests fonctionnels avec pilotes, corrections, ajustements",
+            "etapes": ["Tests avec pilotes (Chloé, Sébastien, Karine)", "Corrections et ajustements", "Tests en conditions réelles (client pilote, EMA pilote)"]
+        },
+        {
+            "nom": "S6 — Mise en production",
+            "code": "s6",
+            "statut": "a_venir",
+            "description": "Migration données, formation équipe RS, basculement progressif",
+            "etapes": ["Migration données nécessaires", "Formation équipe RS", "Basculement Résoprod → WPA"]
         }
     ],
     "livrables": [
-        "Cadrage des besoins et priorisation",
-        "Cahier des charges fonctionnel",
-        "Plateforme WPA minimale",
-        "Espace client Resosign",
-        "Intégrations (n8n, Brevo, AXT)"
+        "Document de travail Phase 1 (cadrage complet)",
+        "RACI campagne (matrice acteurs × étapes)",
+        "Plateforme WPA — coordination campagnes",
+        "App terrain poseurs (PWA mobile)",
+        "Portail client (vue suivi « Amazon »)"
     ],
     "bonnes_pratiques": [
+        "2026 = Lab — on construit vite, on itère avec les pilotes",
+        "2027 = Consolidation — on fige, on fiabilise, peu de fonctionnel neuf",
         "Les échanges passent par cet espace — moins d'emails dispersés",
-        "Le plan d'action est mis à jour chaque semaine",
-        "Les documents et questions sont directement suivis par le consultant"
+        "Le plan d'action est mis à jour chaque semaine"
     ]
 }
