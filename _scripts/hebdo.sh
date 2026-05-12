@@ -32,7 +32,7 @@ ANNEE=$(date +%Y)
 # --- Config ---
 FTP_HOST="ftp.qufi1696.odns.fr"
 REMOTE_BASE="/missions"
-MISSIONS_DIR="$(cd "$(dirname "$0")/../../.."; pwd)/Missions/missions"
+MISSIONS_DIR="$(cd "$(dirname "$0")/../../../.."; pwd)/Missions/missions"
 SQL_OUTPUT_DIR="$(cd "$(dirname "$0")/.."; pwd)/sql"
 
 # --- Détecter les missions actives ---
@@ -82,7 +82,7 @@ for MISSION_DIR in "${ACTIVE_MISSIONS[@]}"; do
     DONUT="$MISSION_DIR/resumes-ec/donut-${SEMAINE}.png"
 
     if [ -f "$RESUME" ]; then
-        curl -s -k --ftp-ssl --netrc \
+        curl -s -k --ftp-ssl-control --netrc \
             -T "$RESUME" \
             "ftp://${FTP_HOST}${REMOTE_BASE}/${SLUG}/resumes/${ANNEE}-${SEMAINE}.md" \
             && echo "  ✓ Résumé ${ANNEE}-${SEMAINE}.md" \
@@ -93,7 +93,7 @@ for MISSION_DIR in "${ACTIVE_MISSIONS[@]}"; do
     fi
 
     if [ -f "$DONUT" ]; then
-        curl -s -k --ftp-ssl --netrc \
+        curl -s -k --ftp-ssl-control --netrc \
             -T "$DONUT" \
             "ftp://${FTP_HOST}${REMOTE_BASE}/${SLUG}/resumes/donut-${SEMAINE}.png" \
             && echo "  ✓ Donut donut-${SEMAINE}.png" \
@@ -108,7 +108,7 @@ for MISSION_DIR in "${ACTIVE_MISSIONS[@]}"; do
     if [ -f "$MISSION_JSON" ]; then
         MODIFIED=$(find "$MISSION_JSON" -mtime -7 2>/dev/null)
         if [ -n "$MODIFIED" ]; then
-            curl -s -k --ftp-ssl --netrc \
+            curl -s -k --ftp-ssl-control --netrc \
                 -T "$MISSION_JSON" \
                 "ftp://${FTP_HOST}${REMOTE_BASE}/${SLUG}/mission.json" \
                 && echo "  ✓ mission.json (modifié récemment)" \
@@ -175,28 +175,33 @@ WHERE NOT EXISTS (SELECT 1 FROM documents WHERE mission_slug='${SLUG}' AND path=
             [[ "$FILENAME" == *.gsheet ]] && continue
             [[ "$FILENAME" == *.gslides ]] && continue
 
-            TITRE=$(echo "$FILENAME" | sed "s/\.${EXT}$//")
-            REMOTE_PATH="/missions/${SLUG}/docs/${FILENAME}"
+            # Nettoyer le nom : remplacer espaces et caractères spéciaux
+            SAFE_FILENAME=$(echo "$FILENAME" | sed 's/[[:space:]]/_/g; s/\[//g; s/\]//g; s/—/-/g; s/[éèê]/e/g; s/[àâ]/a/g; s/[ùû]/u/g; s/[ôö]/o/g; s/[îï]/i/g; s/[ç]/c/g')
+            TITRE=$(echo "$SAFE_FILENAME" | sed "s/\.${EXT}$//")
+            REMOTE_PATH="/missions/${SLUG}/docs/${SAFE_FILENAME}"
 
-            # Créer le dossier docs/ sur o2switch
-            curl -s -k --ftp-ssl --netrc \
+            # Créer le dossier docs/ dans missions/SLUG/ (supprime l'output, ignore si existe)
+            curl -s -k --ftp-ssl-control --netrc -o /dev/null \
                 "ftp://${FTP_HOST}${REMOTE_BASE}/${SLUG}/" \
-                -Q "MKD docs" 2>/dev/null || true
+                -Q "-MKD docs" 2>/dev/null || true
 
-            # Upload le fichier
-            curl -s -k --ftp-ssl --netrc \
-                -T "$regular_file" \
-                "ftp://${FTP_HOST}${REMOTE_BASE}/${SLUG}/docs/${FILENAME}" \
-                && echo "  📎 Fichier : $FILENAME → FTP" \
+            # Copier dans un fichier temporaire au nom propre, puis uploader
+            TMP_UPLOAD="/tmp/hebdo-upload-${SAFE_FILENAME}"
+            cp "$regular_file" "$TMP_UPLOAD"
+            curl -s -k --ftp-ssl-control --netrc \
+                -T "$TMP_UPLOAD" \
+                "ftp://${FTP_HOST}${REMOTE_BASE}/${SLUG}/docs/${SAFE_FILENAME}" \
+                && echo "  📎 Fichier : $FILENAME → FTP (${SAFE_FILENAME})" \
                 || echo "  ✗ Erreur upload $FILENAME"
+            rm -f "$TMP_UPLOAD"
 
             VISIBILITY="all"
             [[ "$LEVEL" == "direction" ]] && VISIBILITY="dirigeant"
 
             SQL_INSERTS+="
 INSERT INTO documents (mission_slug, titre, type, path, filename, visibility)
-SELECT '${SLUG}', '${TITRE}', 'file', '${REMOTE_PATH}', '${FILENAME}', '${VISIBILITY}'
-WHERE NOT EXISTS (SELECT 1 FROM documents WHERE mission_slug='${SLUG}' AND filename='${FILENAME}');
+SELECT '${SLUG}', '${TITRE}', 'file', '${REMOTE_PATH}', '${SAFE_FILENAME}', '${VISIBILITY}'
+WHERE NOT EXISTS (SELECT 1 FROM documents WHERE mission_slug='${SLUG}' AND filename='${SAFE_FILENAME}');
 "
             TOTAL_NEW_DOCS=$((TOTAL_NEW_DOCS + 1))
             TOTAL_UPLOADED=$((TOTAL_UPLOADED + 1))

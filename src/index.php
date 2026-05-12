@@ -755,7 +755,7 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
                         <?php elseif ($doc['type'] === 'link'): ?>
                         <a href="<?= htmlspecialchars($doc['path']) ?>" target="_blank" class="text-xs text-blue-600 hover:underline">Ouvrir</a>
                         <?php else: ?>
-                        <a href="/documents/<?= $slug ?>/<?= htmlspecialchars($doc['filename']) ?>" class="text-xs text-blue-600 hover:underline">Télécharger</a>
+                        <a href="<?= htmlspecialchars($doc['path']) ?>" target="_blank" class="text-xs text-blue-600 hover:underline">Télécharger</a>
                         <?php endif; ?>
                     </div>
                 </div>

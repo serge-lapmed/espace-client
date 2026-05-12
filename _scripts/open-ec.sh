@@ -40,7 +40,7 @@ REMOTE_BASE="/missions"
 
 # --- Trouver le dossier mission sur H:/ ---
 SLUG_UPPER=$(echo "$SLUG" | tr '[:lower:]' '[:upper:]' | tr '-' '_')
-MISSIONS_DIR="$(cd "$(dirname "$0")/../../.."; pwd)/Missions/missions"
+MISSIONS_DIR="$(cd "$(dirname "$0")/../../../.."; pwd)/Missions/missions"
 
 MISSION_DIR=""
 for d in "$MISSIONS_DIR/"*; do
@@ -79,17 +79,17 @@ echo ""
 
 # --- 1. Créer les dossiers sur O2switch (FTP) ---
 echo "[1/3] Création dossiers FTP..."
-curl -s -k --ftp-ssl --netrc \
+curl -s -k --ftp-ssl-control --netrc \
     "ftp://${FTP_HOST}${REMOTE_BASE}/" \
     -Q "MKD ${SLUG}" 2>/dev/null || true
-curl -s -k --ftp-ssl --netrc \
+curl -s -k --ftp-ssl-control --netrc \
     "ftp://${FTP_HOST}${REMOTE_BASE}/${SLUG}/" \
     -Q "MKD resumes" 2>/dev/null || true
 echo "      ✓ missions/${SLUG}/ et missions/${SLUG}/resumes/ créés"
 
 # --- 2. Upload mission.json ---
 echo "[2/3] Upload mission.json..."
-curl -s -k --ftp-ssl --netrc \
+curl -s -k --ftp-ssl-control --netrc \
     -T "$MISSION_JSON" \
     "ftp://${FTP_HOST}${REMOTE_BASE}/${SLUG}/mission.json"
 echo "      ✓ mission.json uploadé"
