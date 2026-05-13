@@ -1,7 +1,8 @@
 <?php
 /**
  * Espace Mission — Admin (Serge only)
- * Gestion des utilisateurs et liens de partage
+ * Gestion des utilisateurs, liens de partage et missions
+ * V2 — 2026-05-13 : ajout section Missions
  */
 require_once __DIR__ . '/includes/config.php';
 require_once __DIR__ . '/includes/auth.php';
@@ -19,7 +20,6 @@ $error = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = $_POST['action'] ?? '';
 
-    // Créer un utilisateur
     if ($action === 'create_user') {
         $email = $_POST['email'] ?? '';
         $nom = $_POST['nom'] ?? '';
@@ -37,7 +37,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Créer un lien de partage
     if ($action === 'create_link') {
         $mission = $_POST['mission_slug'] ?? '';
         $label = $_POST['label'] ?? '';
@@ -50,7 +49,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 
-    // Désactiver un utilisateur
     if ($action === 'toggle_user') {
         $uid = (int)($_POST['user_id'] ?? 0);
         if ($uid) {
@@ -69,6 +67,9 @@ $share_links = $db->query('SELECT * FROM share_links ORDER BY created_at DESC')-
 
 $role_labels = ['admin' => 'Admin', 'dirigeant' => 'Dirigeant', 'equipe' => 'Équipe', 'externe' => 'Externe'];
 $role_colors = ['admin' => 'bg-purple-100 text-purple-700', 'dirigeant' => 'bg-blue-100 text-blue-700', 'equipe' => 'bg-green-100 text-green-700', 'externe' => 'bg-gray-100 text-gray-600'];
+
+$statut_labels = ['amorçage' => 'Amorçage', 'en_cours' => 'En cours', 'terminee' => 'Terminée', 'archivee' => 'Archivée'];
+$statut_colors = ['amorçage' => 'bg-yellow-100 text-yellow-700', 'en_cours' => 'bg-blue-100 text-blue-700', 'terminee' => 'bg-green-100 text-green-700', 'archivee' => 'bg-gray-100 text-gray-500'];
 ?>
 <!DOCTYPE html>
 <html lang="fr">
@@ -96,6 +97,37 @@ $role_colors = ['admin' => 'bg-purple-100 text-purple-700', 'dirigeant' => 'bg-b
         <?php if ($error): ?>
             <div class="bg-red-50 border border-red-200 text-red-700 text-sm rounded-lg p-3 mb-6"><?= htmlspecialchars($error) ?></div>
         <?php endif; ?>
+
+        <!-- MISSIONS -->
+        <section class="mb-10">
+            <h2 class="text-lg font-semibold text-gray-800 mb-4">Missions</h2>
+            <p class="text-sm text-gray-500 mb-4">Cliquer sur une mission pour modifier son état (jours, phase, statut, intervenants).</p>
+
+            <div class="grid gap-2">
+                <?php foreach ($missions as $m):
+                    $statut = $m['statut'] ?? 'en_cours';
+                ?>
+                <a href="/admin-mission.php?slug=<?= $m['slug'] ?>"
+                   class="flex items-center justify-between bg-white border border-gray-200 rounded-lg p-4 hover:border-blue-400 hover:shadow-sm transition">
+                    <div class="flex items-center gap-3">
+                        <div>
+                            <span class="font-medium text-gray-800"><?= htmlspecialchars($m['client']) ?></span>
+                            <span class="text-sm text-gray-400 ml-2"><?= htmlspecialchars($m['titre']) ?></span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3">
+                        <?php if (!empty($m['jours_total'])): ?>
+                        <span class="text-xs text-gray-400"><?= $m['jours_consommes'] ?? 0 ?>/<?= $m['jours_total'] ?>j</span>
+                        <?php endif; ?>
+                        <span class="px-2 py-0.5 rounded-full text-xs font-medium <?= $statut_colors[$statut] ?? '' ?>">
+                            <?= $statut_labels[$statut] ?? $statut ?>
+                        </span>
+                        <span class="text-gray-300">&rarr;</span>
+                    </div>
+                </a>
+                <?php endforeach; ?>
+            </div>
+        </section>
 
         <!-- UTILISATEURS -->
         <section class="mb-10">
@@ -140,7 +172,6 @@ $role_colors = ['admin' => 'bg-purple-100 text-purple-700', 'dirigeant' => 'bg-b
                 </tbody>
             </table>
 
-            <!-- AJOUTER UN UTILISATEUR -->
             <details class="mt-4">
                 <summary class="text-sm text-blue-600 cursor-pointer hover:underline">+ Ajouter un utilisateur</summary>
                 <form method="POST" class="bg-white border border-gray-200 rounded-lg p-4 mt-2 grid grid-cols-2 gap-3">

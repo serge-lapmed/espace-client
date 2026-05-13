@@ -59,12 +59,16 @@
 - [x] Page d'accueil refontée : missions actives + missions terminées (grisées)
 - [x] Types de mission affichés (diagnostic-si, accompagnement-transfo, amoa-gouvernance, cadrage-si)
 - [x] Tri par statut (actives d'abord)
-- [ ] **À déployer** : git push + deploy.sh sur O2switch
-- [ ] **À faire** : créer comptes André Bonnavion + Sébastien Bay via /admin.php
+- [x] Déployé le 12/05 : deploy.sh + hebdo.sh fonctionnels
+- [x] Scripts deploy.sh, hebdo.sh, open-ec.sh fiabilisés (FTP, SSH, chemins)
+- [x] Guide déploiement HTML complet (_pilotage/guide-deploiement.html)
+- [x] Documents uploadés en FTP + SQL exécuté (FL Metal, RS)
+- [ ] Créer comptes André Bonnavion + Sébastien Bay via /admin.php
 
 ## V2 — Multi-clients en production (Q3)
 - [x] Ajouter mission Bonnavion *(fait en V1.5)*
 - [x] Ajouter mission RS *(fait en V1.2)*
+- [ ] Admin mission : éditer jours consommés, phase active, statut, météo directement depuis l'IHM (sans toucher au JSON)
 - [ ] Dashboard admin multi-missions (vue d'ensemble)
 - [ ] Détail du temps consommé (sous-entrées par semaine)
 - [ ] Export PDF du récap mission (pour le client)
