@@ -14,14 +14,39 @@
     "phase_statut": "en_cours",
     "financeur": null,
     "logo_client": null,
-    "modules": ["mission", "resumes", "messages", "documents", "actions"],
+    "modules": [
+        "mission",
+        "resumes",
+        "messages",
+        "documents",
+        "actions",
+        "meteo",
+        "arbitrages",
+        "decisions",
+        "points"
+    ],
     "intervenants": [
-        { "nom": "André Bonnavion", "role": "Dirigeant — Bonnavion Industrie", "type": "sponsor" },
-        { "nom": "Christina", "role": "Cheffe de projet — CamptoCamp", "type": "partenaire" },
-        { "nom": "Serge Fornier", "role": "Consultant SI — La PME Digitale", "type": "consultant" }
+        {
+            "nom": "André Bonnavion",
+            "role": "Dirigeant — Bonnavion Industrie",
+            "type": "sponsor"
+        },
+        {
+            "nom": "Christina",
+            "role": "Cheffe de projet — CamptoCamp",
+            "type": "partenaire"
+        },
+        {
+            "nom": "Serge Fornier",
+            "role": "Consultant SI — La PME Digitale",
+            "type": "consultant"
+        }
     ],
     "gouvernance": {
-        "copil": ["André Bonnavion", "Serge Fornier"],
+        "copil": [
+            "André Bonnavion",
+            "Serge Fornier"
+        ],
         "frequence": "Point régulier à la demande"
     },
     "phases": [
@@ -30,28 +55,45 @@
             "code": "bootcamp",
             "statut": "termine",
             "description": "Formation équipe avec CamptoCamp, 13h/20h consommées, 7h reportées sur le projet",
-            "etapes": ["Formation équipe Sébastien/Bonnavion", "Prise en main Odoo", "Cadrage besoins initiaux"]
+            "etapes": [
+                "Formation équipe Sébastien/Bonnavion",
+                "Prise en main Odoo",
+                "Cadrage besoins initiaux"
+            ]
         },
         {
             "nom": "Démarrage projet",
             "code": "demarrage",
             "statut": "en_cours",
             "description": "Lancement du paramétrage Odoo avec CamptoCamp, supervision AMOA",
-            "etapes": ["Paramétrage CamptoCamp en cours", "Suivi Studio vs standard", "Clarification coûts upgrades"]
+            "etapes": [
+                "Paramétrage CamptoCamp en cours",
+                "Suivi Studio vs standard",
+                "Clarification coûts upgrades"
+            ]
         },
         {
             "nom": "Déploiement & Recette",
             "code": "deploiement",
             "statut": "a_venir",
             "description": "Tests fonctionnels, recette interne Bonnavion, mise en production",
-            "etapes": ["Recette interne (objectif autonomie)", "Correction bugs", "Bascule production"]
+            "etapes": [
+                "Recette interne (objectif autonomie)",
+                "Correction bugs",
+                "Bascule production"
+            ]
         },
         {
             "nom": "AMOA pérenne",
             "code": "amoa",
             "statut": "a_venir",
             "description": "Accompagnement récurrent : gouvernance SI, arbitrages, documentation DSI",
-            "etapes": ["Gouvernance SI formalisée", "Documentation DSI Bonnavion", "Arbitrages best-of-breed", "Points réguliers André + Flavier"]
+            "etapes": [
+                "Gouvernance SI formalisée",
+                "Documentation DSI Bonnavion",
+                "Arbitrages best-of-breed",
+                "Points réguliers André + Flavier"
+            ]
         }
     ],
     "livrables": [

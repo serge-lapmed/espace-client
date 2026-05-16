@@ -7,8 +7,9 @@ function get_db(): PDO {
     static $pdo = null;
     if ($pdo !== null) return $pdo;
 
+    $port = defined('DB_PORT') ? ';port=' . DB_PORT : '';
     $pdo = new PDO(
-        'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4',
+        'mysql:host=' . DB_HOST . $port . ';dbname=' . DB_NAME . ';charset=utf8mb4',
         DB_USER,
         DB_PASS,
         [

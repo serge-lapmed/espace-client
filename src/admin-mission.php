@@ -124,6 +124,10 @@ $all_modules = [
     'messages'  => 'Messages',
     'documents' => 'Documents',
     'actions'   => "Plan d'action",
+    'meteo'     => 'Météo mission',
+    'arbitrages'=> 'Arbitrages / Votes',
+    'decisions' => 'Fil de décisions',
+    'points'   => 'Points hebdo',
 ];
 $current_modules = $mission['modules'] ?? ['mission', 'resumes'];
 

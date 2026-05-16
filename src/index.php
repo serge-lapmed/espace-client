@@ -82,6 +82,223 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'post_
     exit;
 }
 
+// ─── POST: METEO ───
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'post_meteo') {
+    $slug = sanitize_slug($_POST['mission_slug'] ?? '');
+    $score = intval($_POST['score'] ?? 0);
+    $commentaire = trim(mb_substr($_POST['commentaire'] ?? '', 0, 280));
+    if ($slug && $score >= 1 && $score <= 4 && auth_can_access_mission($slug)) {
+        $db = get_db();
+        $stmt = $db->prepare('INSERT INTO meteo (mission_slug, user_id, score, commentaire) VALUES (?, ?, ?, ?)');
+        $stmt->execute([$slug, $user['id'], $score, $commentaire]);
+    }
+    header('Location: /' . $slug . '?tab=' . ($_POST['redirect_tab'] ?? 'resumes'));
+    exit;
+}
+
+// ─── POST: ARBITRAGE (créer) ───
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create_arbitrage') {
+    $slug = sanitize_slug($_POST['mission_slug'] ?? '');
+    $titre = trim($_POST['titre'] ?? '');
+    $contexte = trim($_POST['contexte'] ?? '');
+    $choix = trim($_POST['choix_propose'] ?? '');
+    if ($slug && $titre && $user['role'] === 'admin' && auth_can_access_mission($slug)) {
+        $db = get_db();
+        $stmt = $db->prepare('INSERT INTO arbitrages (mission_slug, titre, contexte, choix_propose, statut, created_by) VALUES (?, ?, ?, ?, "ouvert", ?)');
+        $stmt->execute([$slug, $titre, $contexte, $choix, $user['id']]);
+    }
+    header('Location: /' . $slug . '?tab=arbitrages');
+    exit;
+}
+
+// ─── POST: ARBITRAGE (voter) ───
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'vote_arbitrage') {
+    $slug = sanitize_slug($_POST['mission_slug'] ?? '');
+    $arb_id = intval($_POST['arbitrage_id'] ?? 0);
+    $vote = $_POST['vote'] ?? '';
+    $commentaire = trim($_POST['commentaire'] ?? '');
+    if ($slug && $arb_id && in_array($vote, ['ok', 'pas_ok', 'a_discuter']) && auth_can_access_mission($slug)) {
+        $db = get_db();
+        $stmt = $db->prepare('INSERT INTO arbitrage_votes (arbitrage_id, user_id, vote, commentaire) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE vote = VALUES(vote), commentaire = VALUES(commentaire)');
+        $stmt->execute([$arb_id, $user['id'], $vote, $commentaire]);
+    }
+    header('Location: /' . $slug . '?tab=arbitrages');
+    exit;
+}
+
+// ─── POST: ARBITRAGE (clore) ───
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'close_arbitrage') {
+    $slug = sanitize_slug($_POST['mission_slug'] ?? '');
+    $arb_id = intval($_POST['arbitrage_id'] ?? 0);
+    if ($slug && $arb_id && $user['role'] === 'admin' && auth_can_access_mission($slug)) {
+        $db = get_db();
+        $stmt = $db->prepare('UPDATE arbitrages SET statut = "clos", closed_at = NOW() WHERE id = ? AND mission_slug = ?');
+        $stmt->execute([$arb_id, $slug]);
+    }
+    header('Location: /' . $slug . '?tab=arbitrages');
+    exit;
+}
+
+// ─── POST: DECISION ───
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create_decision') {
+    $slug = sanitize_slug($_POST['mission_slug'] ?? '');
+    $titre = trim($_POST['titre'] ?? '');
+    $decideur = trim($_POST['decideur'] ?? '');
+    $contexte = trim($_POST['contexte'] ?? '');
+    $date_decision = $_POST['date_decision'] ?? date('Y-m-d');
+    if ($slug && $titre && $user['role'] === 'admin' && auth_can_access_mission($slug)) {
+        $db = get_db();
+        $stmt = $db->prepare('INSERT INTO decisions (mission_slug, titre, decideur, contexte, date_decision, created_by) VALUES (?, ?, ?, ?, ?, ?)');
+        $stmt->execute([$slug, $titre, $decideur, $contexte, $date_decision, $user['id']]);
+    }
+    header('Location: /' . $slug . '?tab=decisions');
+    exit;
+}
+
+// ─── POST: POINT HEBDO (créer) ───
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'create_point') {
+    $slug = sanitize_slug($_POST['mission_slug'] ?? '');
+    $semaine = trim($_POST['semaine'] ?? '');
+    $date_point = $_POST['date_point'] ?? date('Y-m-d');
+    $ordre_du_jour = trim($_POST['ordre_du_jour'] ?? '');
+    $frequence = trim($_POST['frequence'] ?? 'hebdomadaire');
+    if ($slug && $semaine && $user['role'] === 'admin' && auth_can_access_mission($slug)) {
+        $db = get_db();
+        $stmt = $db->prepare('INSERT INTO points_hebdo (mission_slug, semaine, date_point, frequence, ordre_du_jour, statut, created_by) VALUES (?, ?, ?, ?, ?, "brouillon", ?)');
+        $stmt->execute([$slug, $semaine, $date_point, $frequence, $ordre_du_jour, $user['id']]);
+        $new_point_id = $db->lastInsertId();
+        // Dupliquer les actions non faites du point précédent
+        $stmt = $db->prepare('SELECT id FROM points_hebdo WHERE mission_slug = ? AND id != ? ORDER BY date_point DESC, id DESC LIMIT 1');
+        $stmt->execute([$slug, $new_point_id]);
+        $prev = $stmt->fetch();
+        if ($prev) {
+            $stmt = $db->prepare('SELECT * FROM point_actions WHERE point_id = ? AND statut != "fait" ORDER BY ordre, id');
+            $stmt->execute([$prev['id']]);
+            $old_actions = $stmt->fetchAll();
+            foreach ($old_actions as $idx => $oa) {
+                $stmt2 = $db->prepare('INSERT INTO point_actions (point_id, mission_slug, titre, responsable, echeance, statut, ordre) VALUES (?, ?, ?, ?, ?, "reporte", ?)');
+                $stmt2->execute([$new_point_id, $slug, $oa['titre'], $oa['responsable'], $oa['echeance'], $idx]);
+            }
+        }
+        header('Location: /' . $slug . '?tab=points&point_id=' . $new_point_id);
+        exit;
+    }
+    header('Location: /' . $slug . '?tab=points');
+    exit;
+}
+
+// ─── POST: POINT HEBDO (mettre à jour) ───
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'update_point') {
+    $slug = sanitize_slug($_POST['mission_slug'] ?? '');
+    $point_id = intval($_POST['point_id'] ?? 0);
+    if ($slug && $point_id && $user['role'] === 'admin' && auth_can_access_mission($slug)) {
+        $db = get_db();
+        $fields = [];
+        $params = [];
+        foreach (['ordre_du_jour', 'resume', 'avancement', 'prochaines_etapes'] as $f) {
+            if (isset($_POST[$f])) { $fields[] = "$f = ?"; $params[] = trim($_POST[$f]); }
+        }
+        if (isset($_POST['temps_passe'])) { $fields[] = "temps_passe = ?"; $params[] = floatval($_POST['temps_passe']); }
+        if (!empty($fields)) {
+            $fields[] = "updated_at = NOW()";
+            $params[] = $point_id;
+            $params[] = $slug;
+            $stmt = $db->prepare('UPDATE points_hebdo SET ' . implode(', ', $fields) . ' WHERE id = ? AND mission_slug = ?');
+            $stmt->execute($params);
+        }
+    }
+    header('Location: /' . $slug . '?tab=points&point_id=' . $point_id);
+    exit;
+}
+
+// ─── POST: POINT HEBDO (publier) ───
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'publish_point') {
+    $slug = sanitize_slug($_POST['mission_slug'] ?? '');
+    $point_id = intval($_POST['point_id'] ?? 0);
+    if ($slug && $point_id && $user['role'] === 'admin' && auth_can_access_mission($slug)) {
+        $db = get_db();
+        $stmt = $db->prepare('UPDATE points_hebdo SET statut = "publie", published_at = NOW(), updated_at = NOW() WHERE id = ? AND mission_slug = ?');
+        $stmt->execute([$point_id, $slug]);
+    }
+    header('Location: /' . $slug . '?tab=points&point_id=' . $point_id);
+    exit;
+}
+
+// ─── POST: POINT ACTION (ajouter) ───
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'add_point_action') {
+    $slug = sanitize_slug($_POST['mission_slug'] ?? '');
+    $point_id = intval($_POST['point_id'] ?? 0);
+    $titre = trim($_POST['titre'] ?? '');
+    $responsable = trim($_POST['responsable'] ?? '');
+    $echeance = $_POST['echeance'] ?? null;
+    if ($slug && $point_id && $titre && $user['role'] === 'admin' && auth_can_access_mission($slug)) {
+        $db = get_db();
+        $stmt = $db->prepare('SELECT COALESCE(MAX(ordre), -1) + 1 as next_ordre FROM point_actions WHERE point_id = ?');
+        $stmt->execute([$point_id]);
+        $next = $stmt->fetch();
+        $ordre = $next['next_ordre'] ?? 0;
+        $stmt = $db->prepare('INSERT INTO point_actions (point_id, mission_slug, titre, responsable, echeance, statut, ordre) VALUES (?, ?, ?, ?, ?, "a_faire", ?)');
+        $stmt->execute([$point_id, $slug, $titre, $responsable, $echeance ?: null, $ordre]);
+    }
+    header('Location: /' . $slug . '?tab=points&point_id=' . $point_id);
+    exit;
+}
+
+// ─── POST: POINT ACTION (toggle) ───
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'toggle_action') {
+    $slug = sanitize_slug($_POST['mission_slug'] ?? '');
+    $action_id = intval($_POST['action_id'] ?? 0);
+    $point_id = intval($_POST['point_id'] ?? 0);
+    $new_statut = null;
+    if ($slug && $action_id && auth_can_access_mission($slug)) {
+        $db = get_db();
+        $stmt = $db->prepare('SELECT statut FROM point_actions WHERE id = ? AND mission_slug = ?');
+        $stmt->execute([$action_id, $slug]);
+        $act = $stmt->fetch();
+        if ($act) {
+            $new_statut = ($act['statut'] === 'fait') ? 'a_faire' : 'fait';
+            $stmt = $db->prepare('UPDATE point_actions SET statut = ?, checked_by = ?, checked_at = NOW() WHERE id = ?');
+            $stmt->execute([$new_statut, $user['id'], $action_id]);
+        }
+    }
+    // AJAX: répondre en JSON
+    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+        header('Content-Type: application/json');
+        // Recompter les actions
+        $db = get_db();
+        $stmt = $db->prepare('SELECT COUNT(*) as total, SUM(statut = "fait") as faites FROM point_actions WHERE point_id = ?');
+        $stmt->execute([$point_id]);
+        $counts = $stmt->fetch();
+        echo json_encode(['ok' => true, 'new_statut' => $new_statut, 'action_id' => $action_id, 'total' => intval($counts['total'] ?? 0), 'faites' => intval($counts['faites'] ?? 0)]);
+        exit;
+    }
+    header('Location: /' . $slug . '?tab=points&point_id=' . $point_id);
+    exit;
+}
+
+// ─── POST: POINT MÉTÉO ───
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'post_point_meteo') {
+    $slug = sanitize_slug($_POST['mission_slug'] ?? '');
+    $point_id = intval($_POST['point_id'] ?? 0);
+    $score = intval($_POST['score'] ?? 0);
+    $commentaire = trim(mb_substr($_POST['commentaire'] ?? '', 0, 280));
+    if ($slug && $point_id && $score >= 1 && $score <= 4 && auth_can_access_mission($slug)) {
+        $db = get_db();
+        $stmt = $db->prepare('INSERT INTO point_meteo (point_id, user_id, score, commentaire) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE score = VALUES(score), commentaire = VALUES(commentaire), created_at = NOW()');
+        $stmt->execute([$point_id, $user['id'], $score, $commentaire]);
+    }
+    // AJAX: répondre en JSON
+    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => true, 'score' => $score, 'commentaire' => $commentaire, 'user_nom' => $user['nom']]);
+        exit;
+    }
+    header('Location: /' . $slug . '?tab=points&point_id=' . $point_id);
+    exit;
+}
+
+
+
 // ─── ROUTING ───
 $mission_slug = sanitize_slug($parts[0] ?? '');
 $resume_id = $parts[1] ?? null;
@@ -122,10 +339,54 @@ if ($resume_id) $active_tab = 'resumes';
 
 // Sécurité : si l'onglet demandé n'est pas dans les modules autorisés, rediriger vers le premier
 // (empêche un utilisateur externe de forcer ?tab=documents)
-$_role_modules = ['externe' => ['mission', 'resumes'], 'equipe' => ['mission', 'resumes', 'messages', 'documents', 'actions']];
+$_role_modules = ['externe' => ['mission', 'resumes'], 'equipe' => ['mission', 'resumes', 'messages', 'documents', 'actions', 'meteo', 'arbitrages', 'points'], 'dirigeant' => ['mission', 'resumes', 'messages', 'documents', 'actions', 'meteo', 'arbitrages', 'decisions', 'points']];
 $_allowed = $_role_modules[$user['role']] ?? null;
 if ($_allowed !== null && !in_array($active_tab, $_allowed)) {
     $active_tab = $_allowed[0] ?? 'resumes';
+}
+
+// ─── V2.1: ROUTAGE FICHIERS HTML LIVRABLES ───
+// URLs comme /bonnavion-2025/diagnostics/gouvernance_si.html
+if ($resume_id && count($parts) >= 2) {
+    $sub_path = implode('/', array_slice($parts, 1));
+    if (preg_match('/\.html$/i', $sub_path)) {
+        $html_file = __DIR__ . '/' . $mission_slug . '/' . $sub_path;
+        $html_file = realpath($html_file);
+        $base_dir = realpath(__DIR__ . '/' . $mission_slug);
+        // Sécurité : vérifier que le fichier est bien dans le dossier mission
+        if ($html_file && $base_dir && str_starts_with($html_file, $base_dir) && file_exists($html_file)) {
+            // Servir dans une page avec iframe pleine page
+            ?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title><?= htmlspecialchars(basename($sub_path, '.html')) ?> — <?= htmlspecialchars($mission['client']) ?></title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/assets/style.css">
+    <style>
+        iframe { border: none; width: 100%; height: calc(100vh - 56px); }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <div class="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+            <a href="/<?= $mission_slug ?>" class="text-sm text-blue-600 hover:underline flex items-center gap-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                <?= htmlspecialchars($mission['client']) ?>
+            </a>
+            <span class="text-gray-300">/</span>
+            <span class="text-sm font-medium text-gray-700"><?= htmlspecialchars(basename($sub_path, '.html')) ?></span>
+        </div>
+    </div>
+    <iframe src="/<?= htmlspecialchars($mission_slug . '/' . $sub_path) ?>?raw=1"></iframe>
+</body>
+</html>
+            <?php
+            exit;
+        }
+    }
 }
 
 $resumes = list_resumes($mission_slug);
@@ -301,7 +562,7 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
     // equipe : tout sauf le budget (déjà géré par $show_budget)
     $role_modules = [
         'externe' => ['mission', 'resumes'],
-        'equipe'  => ['mission', 'resumes', 'messages', 'documents', 'actions'],
+        'equipe'  => ['mission', 'resumes', 'messages', 'documents', 'actions', 'meteo', 'arbitrages', 'points'],
         'dirigeant' => null, // null = tous les modules
         'admin' => null,
     ];
@@ -339,6 +600,104 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
         $actions = $stmt->fetchAll();
     }
 
+    // V2.1 — Météo
+    $meteo_last = null;
+    $meteo_history = [];
+    if (in_array('meteo', $modules)) {
+        // Dernière météo du user
+        $stmt = $db->prepare('SELECT * FROM meteo WHERE mission_slug = ? AND user_id = ? ORDER BY created_at DESC LIMIT 1');
+        $stmt->execute([$slug, $user['id']]);
+        $meteo_last = $stmt->fetch();
+        // Historique (8 dernières, toutes si admin)
+        if ($user['role'] === 'admin') {
+            $stmt = $db->prepare('SELECT m.*, u.nom as user_nom FROM meteo m LEFT JOIN users u ON m.user_id = u.id WHERE m.mission_slug = ? ORDER BY m.created_at DESC LIMIT 20');
+            $stmt->execute([$slug]);
+        } else {
+            $stmt = $db->prepare('SELECT * FROM meteo WHERE mission_slug = ? AND user_id = ? ORDER BY created_at DESC LIMIT 8');
+            $stmt->execute([$slug, $user['id']]);
+        }
+        $meteo_history = $stmt->fetchAll();
+    }
+
+    // V2.1 — Arbitrages
+    $arbitrages = [];
+    if (in_array('arbitrages', $modules)) {
+        $stmt = $db->prepare('SELECT * FROM arbitrages WHERE mission_slug = ? ORDER BY FIELD(statut, "ouvert", "clos"), created_at DESC');
+        $stmt->execute([$slug]);
+        $arbitrages = $stmt->fetchAll();
+        // Charger les votes pour chaque arbitrage
+        foreach ($arbitrages as &$arb) {
+            $stmt2 = $db->prepare('SELECT av.*, u.nom as user_nom FROM arbitrage_votes av LEFT JOIN users u ON av.user_id = u.id WHERE av.arbitrage_id = ?');
+            $stmt2->execute([$arb['id']]);
+            $arb['votes'] = $stmt2->fetchAll();
+            $arb['user_vote'] = null;
+            foreach ($arb['votes'] as $v) {
+                if ($v['user_id'] == $user['id']) { $arb['user_vote'] = $v; break; }
+            }
+        }
+        unset($arb);
+    }
+
+    // V2.1 — Décisions
+    $decisions = [];
+    if (in_array('decisions', $modules)) {
+        $stmt = $db->prepare('SELECT * FROM decisions WHERE mission_slug = ? ORDER BY date_decision DESC, created_at DESC');
+        $stmt->execute([$slug]);
+        $decisions = $stmt->fetchAll();
+    }
+
+
+    // V2.1 — Points Hebdo
+    $points_hebdo = [];
+    $active_point = null;
+    $active_point_actions = [];
+    $active_point_meteos = [];
+    if (in_array('points', $modules)) {
+        // Filtrer par statut selon le rôle
+        if ($user['role'] === 'admin') {
+            $stmt = $db->prepare('SELECT * FROM points_hebdo WHERE mission_slug = ? ORDER BY date_point DESC, id DESC');
+            $stmt->execute([$slug]);
+        } else {
+            $stmt = $db->prepare('SELECT * FROM points_hebdo WHERE mission_slug = ? AND statut = "publie" ORDER BY date_point DESC, id DESC');
+            $stmt->execute([$slug]);
+        }
+        $points_hebdo = $stmt->fetchAll();
+
+        // Charger le point actif
+        $req_point_id = intval($_GET['point_id'] ?? 0);
+        if ($req_point_id) {
+            foreach ($points_hebdo as $ph) {
+                if (intval($ph['id']) === $req_point_id) { $active_point = $ph; break; }
+            }
+        }
+        if ($active_point) {
+            // Actions du point
+            $stmt = $db->prepare('SELECT * FROM point_actions WHERE point_id = ? ORDER BY ordre, id');
+            $stmt->execute([$active_point['id']]);
+            $active_point_actions = $stmt->fetchAll();
+            // Météos du point
+            $stmt = $db->prepare('SELECT pm.*, u.nom as user_nom FROM point_meteo pm LEFT JOIN users u ON pm.user_id = u.id WHERE pm.point_id = ? ORDER BY pm.created_at');
+            $stmt->execute([$active_point['id']]);
+            $active_point_meteos = $stmt->fetchAll();
+        }
+
+        // Pour la liste : compter les actions par point
+        foreach ($points_hebdo as &$ph) {
+            $stmt = $db->prepare('SELECT COUNT(*) as total, SUM(statut = "fait") as faites FROM point_actions WHERE point_id = ?');
+            $stmt->execute([$ph['id']]);
+            $counts = $stmt->fetch();
+            $ph['actions_total'] = intval($counts['total'] ?? 0);
+            $ph['actions_faites'] = intval($counts['faites'] ?? 0);
+            // Moyenne météo
+            $stmt = $db->prepare('SELECT AVG(score) as avg_score, COUNT(*) as nb FROM point_meteo WHERE point_id = ?');
+            $stmt->execute([$ph['id']]);
+            $meteo_stats = $stmt->fetch();
+            $ph['meteo_avg'] = $meteo_stats['avg_score'] ? round(floatval($meteo_stats['avg_score']), 1) : null;
+            $ph['meteo_nb'] = intval($meteo_stats['nb'] ?? 0);
+        }
+        unset($ph);
+    }
+
     // Labels onglets
     $tab_labels = [
         'mission' => 'Mission',
@@ -346,6 +705,9 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
         'messages' => 'Messages',
         'documents' => 'Documents',
         'actions' => 'Plan d\'action',
+        'arbitrages' => 'Arbitrages',
+        'decisions' => 'Décisions',
+        'points' => 'Points',
     ];
     $tab_icons = [
         'mission' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
@@ -353,6 +715,9 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
         'messages' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>',
         'documents' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>',
         'actions' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>',
+        'arbitrages' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l3 9a5.002 5.002 0 01-6.001 0M18 7l-3 9m-6-5l6-2m0 0l6 2"/></svg>',
+        'decisions' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>',
+        'points' => '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>',
     ];
 ?>
 <!DOCTYPE html>
@@ -371,6 +736,30 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
         .msg-consultant { border-left: 3px solid #2563eb; }
         .msg-client { border-left: 3px solid #10b981; }
         .action-haute { border-left: 3px solid #ef4444; }
+
+        /* Points hebdo — animations & fun */
+        .point-action-row { transition: opacity 0.3s ease, transform 0.2s ease; }
+        .point-action-row.done { opacity: 0.55; }
+        .point-action-row .action-text { transition: all 0.3s ease; position: relative; }
+        .point-action-row.done .action-text { text-decoration: line-through; text-decoration-color: #9ca3af; }
+        .point-action-check { transition: all 0.2s ease; }
+        .point-action-check:active { transform: scale(0.85); }
+        .meteo-btn { transition: transform 0.15s ease, box-shadow 0.15s ease; cursor: pointer; }
+        .meteo-btn:hover { transform: scale(1.15); }
+        .meteo-btn:active { transform: scale(0.95); }
+        .meteo-btn.selected { transform: scale(1.2); box-shadow: 0 0 0 3px rgba(59,130,246,0.4); }
+        .progress-bar-fill { transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+        .point-stepper-step { transition: all 0.2s ease; }
+        .point-stepper-step.active { font-weight: 600; }
+        .mini-progress { transition: width 0.4s ease; }
+        .md-rendered { line-height: 1.6; }
+        .md-rendered p { margin-bottom: 0.5em; }
+        .md-rendered ul, .md-rendered ol { margin-left: 1.2em; margin-bottom: 0.5em; }
+        .md-rendered li { margin-bottom: 0.15em; }
+        .md-rendered strong { font-weight: 600; }
+        .md-rendered em { font-style: italic; }
+        .md-rendered h1, .md-rendered h2, .md-rendered h3 { font-weight: 600; margin-top: 0.8em; margin-bottom: 0.3em; }
+        .md-preview-toggle { cursor: pointer; user-select: none; }
         .action-normale { border-left: 3px solid #f59e0b; }
         .action-basse { border-left: 3px solid #d1d5db; }
     </style>
@@ -483,6 +872,61 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
         </div>
         <?php endif; ?>
 
+        <!-- WIDGET MÉTÉO MISSION -->
+        <?php if (in_array('meteo', $modules)): ?>
+        <div class="bg-white rounded-lg border border-gray-200 p-5 mb-6">
+            <div class="flex items-start justify-between gap-6">
+                <div>
+                    <h2 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Ressenti mission</h2>
+                    <form method="POST" class="flex items-center gap-2">
+                        <input type="hidden" name="action" value="post_meteo">
+                        <input type="hidden" name="mission_slug" value="<?= $slug ?>">
+                        <input type="hidden" name="redirect_tab" value="<?= htmlspecialchars($active_tab) ?>">
+                        <input type="hidden" name="score" id="meteo-score" value="">
+                        <?php
+                        $meteo_icons = [4 => ['icon' => "☀️", 'label' => 'Soleil'], 3 => ['icon' => "⛅", 'label' => 'Nuageux'], 2 => ['icon' => "⛈️", 'label' => 'Orage'], 1 => ['icon' => "🌪️", 'label' => 'Temp\u00eate']];
+                        foreach ($meteo_icons as $score => $info):
+                            $is_selected = ($meteo_last && intval($meteo_last['score']) === $score);
+                        ?>
+                        <button type="submit" onclick="document.getElementById('meteo-score').value='<?= $score ?>'" title="<?= $info['label'] ?>"
+                            class="text-2xl px-2 py-1 rounded-lg transition hover:bg-gray-100 <?= $is_selected ? 'bg-blue-50 ring-2 ring-blue-300' : '' ?>">
+                            <?= $info['icon'] ?>
+                        </button>
+                        <?php endforeach; ?>
+                        <input type="text" name="commentaire" maxlength="280" placeholder="Commentaire optionnel..."
+                            class="ml-3 flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" style="min-width:180px;">
+                    </form>
+                    <?php if ($meteo_last): ?>
+                    <p class="text-xs text-gray-400 mt-2">
+                        Dernier ressenti : <?= $meteo_icons[intval($meteo_last['score'])]['icon'] ?? '' ?>
+                        <?php if ($meteo_last['commentaire']): ?>
+                        — <span class="text-gray-500 italic"><?= htmlspecialchars($meteo_last['commentaire']) ?></span>
+                        <?php endif; ?>
+                        <span class="ml-1">(<?= date('d/m', strtotime($meteo_last['created_at'])) ?>)</span>
+                    </p>
+                    <?php endif; ?>
+                </div>
+                <!-- Mini sparkline CSS -->
+                <?php if (count($meteo_history) > 1): ?>
+                <div class="flex-shrink-0">
+                    <span class="text-xs text-gray-400 block mb-1"><?= $user['role'] === 'admin' ? 'Historique global' : 'Historique' ?></span>
+                    <div class="flex items-end gap-0.5" style="height:32px;">
+                        <?php
+                        $display = array_slice(array_reverse($meteo_history), 0, 8);
+                        $colors = [1 => 'bg-red-400', 2 => 'bg-orange-400', 3 => 'bg-yellow-400', 4 => 'bg-green-400'];
+                        foreach ($display as $mh):
+                            $h = intval($mh['score']) * 8;
+                        ?>
+                        <div class="w-3 rounded-sm <?= $colors[intval($mh['score'])] ?? 'bg-gray-300' ?>" style="height:<?= $h ?>px;"
+                            title="<?= ($mh['user_nom'] ?? '') . ' ' . date('d/m', strtotime($mh['created_at'])) . ' — ' . ($meteo_icons[intval($mh['score'])]['label'] ?? '') ?>"></div>
+                        <?php endforeach; ?>
+                    </div>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+        <?php endif; ?>
+
         <!-- ONGLETS -->
         <nav class="flex gap-6 border-b border-gray-200 mb-6">
             <?php foreach ($modules as $mod):
@@ -493,6 +937,13 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
                 if ($mod === 'actions') {
                     $pending = count(array_filter($actions, fn($a) => in_array($a['statut'], ['a_faire', 'en_cours'])));
                     if ($pending) $count = ' <span class="text-xs bg-blue-100 text-blue-600 rounded-full px-1.5 py-0.5 ml-1">' . $pending . '</span>';
+                }
+                if ($mod === 'arbitrages') {
+                    $open = count(array_filter($arbitrages, fn($a) => $a['statut'] === 'ouvert'));
+                    if ($open) $count = ' <span class="text-xs bg-yellow-100 text-yellow-600 rounded-full px-1.5 py-0.5 ml-1">' . $open . '</span>';
+                }
+                if ($mod === 'points' && !empty($points_hebdo)) {
+                    $count = ' <span class="text-xs bg-blue-100 text-blue-600 rounded-full px-1.5 py-0.5 ml-1">' . count($points_hebdo) . '</span>';
                 }
             ?>
             <a href="/<?= $slug ?>?tab=<?= $mod ?>"
@@ -809,6 +1260,648 @@ function render_mission(array $mission, array $resumes, ?string $resume_id, arra
             </div>
             <?php endif; ?>
         </div>
+        <?php elseif ($active_tab === 'arbitrages'): ?>
+        <!-- ═══ ARBITRAGES ═══ -->
+        <div class="max-w-3xl">
+            <!-- Formulaire création (admin) -->
+            <?php if ($user['role'] === 'admin'): ?>
+            <form method="POST" class="bg-white rounded-lg border border-gray-200 p-5 mb-6">
+                <input type="hidden" name="action" value="create_arbitrage">
+                <input type="hidden" name="mission_slug" value="<?= $slug ?>">
+                <h3 class="text-sm font-medium text-gray-700 mb-3">Soumettre un arbitrage</h3>
+                <div class="space-y-3">
+                    <input type="text" name="titre" required placeholder="Titre de l'arbitrage"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <textarea name="contexte" rows="2" placeholder="Contexte / enjeux"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"></textarea>
+                    <input type="text" name="choix_propose" placeholder="Choix proposé"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                </div>
+                <div class="flex justify-end mt-3">
+                    <button type="submit" class="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition">Créer l'arbitrage</button>
+                </div>
+            </form>
+            <?php endif; ?>
+
+            <?php if (empty($arbitrages)): ?>
+            <div class="text-center py-12 text-gray-400">
+                <p class="text-sm">Aucun arbitrage pour l'instant.</p>
+                <p class="text-xs mt-1">Les arbitrages soumis au vote apparaîtront ici.</p>
+            </div>
+            <?php else: ?>
+            <div class="space-y-4">
+                <?php foreach ($arbitrages as $arb):
+                    $is_open = ($arb['statut'] === 'ouvert');
+                    $vote_counts = ['ok' => 0, 'pas_ok' => 0, 'a_discuter' => 0];
+                    foreach ($arb['votes'] as $v) { if (isset($vote_counts[$v['vote']])) $vote_counts[$v['vote']]++; }
+                    $total_votes = array_sum($vote_counts);
+                ?>
+                <div class="bg-white rounded-lg border <?= $is_open ? 'border-gray-200' : 'border-gray-100 opacity-60' ?> p-5">
+                    <div class="flex items-start justify-between gap-3 mb-3">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-sm font-medium text-gray-800"><?= htmlspecialchars($arb['titre']) ?></h3>
+                                <span class="text-xs px-2 py-0.5 rounded-full <?= $is_open ? 'bg-blue-50 text-blue-600' : 'bg-gray-100 text-gray-500' ?>">
+                                    <?= $is_open ? 'Ouvert' : 'Clos' ?>
+                                </span>
+                            </div>
+                            <?php if ($arb['contexte']): ?>
+                            <p class="text-xs text-gray-500 mt-1"><?= htmlspecialchars($arb['contexte']) ?></p>
+                            <?php endif; ?>
+                            <?php if ($arb['choix_propose']): ?>
+                            <p class="text-xs text-gray-600 mt-1 italic">Proposition : <?= htmlspecialchars($arb['choix_propose']) ?></p>
+                            <?php endif; ?>
+                        </div>
+                        <?php if ($is_open && $user['role'] === 'admin'): ?>
+                        <form method="POST" class="flex-shrink-0">
+                            <input type="hidden" name="action" value="close_arbitrage">
+                            <input type="hidden" name="mission_slug" value="<?= $slug ?>">
+                            <input type="hidden" name="arbitrage_id" value="<?= $arb['id'] ?>">
+                            <button type="submit" class="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded hover:bg-gray-100 transition">Clore</button>
+                        </form>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- Résumé des votes -->
+                    <?php if ($total_votes > 0): ?>
+                    <div class="flex items-center gap-4 text-xs text-gray-500 mb-3 pb-3 border-b border-gray-100">
+                        <span class="text-green-600">&#10003; OK : <?= $vote_counts['ok'] ?></span>
+                        <span class="text-red-500">&#10007; Pas OK : <?= $vote_counts['pas_ok'] ?></span>
+                        <span class="text-yellow-600">? À discuter : <?= $vote_counts['a_discuter'] ?></span>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Votes détaillés (visibles admin) -->
+                    <?php if ($user['role'] === 'admin' && !empty($arb['votes'])): ?>
+                    <div class="space-y-1 mb-3">
+                        <?php foreach ($arb['votes'] as $v):
+                            $vote_icons = ['ok' => '&#10003;', 'pas_ok' => '&#10007;', 'a_discuter' => '?'];
+                            $vote_colors = ['ok' => 'text-green-600', 'pas_ok' => 'text-red-500', 'a_discuter' => 'text-yellow-600'];
+                        ?>
+                        <div class="flex items-center gap-2 text-xs">
+                            <span class="<?= $vote_colors[$v['vote']] ?? '' ?>"><?= $vote_icons[$v['vote']] ?? '' ?></span>
+                            <span class="font-medium text-gray-700"><?= htmlspecialchars($v['user_nom'] ?? 'User') ?></span>
+                            <?php if ($v['commentaire']): ?>
+                            <span class="text-gray-400 italic">— <?= htmlspecialchars($v['commentaire']) ?></span>
+                            <?php endif; ?>
+                        </div>
+                        <?php endforeach; ?>
+                    </div>
+                    <?php endif; ?>
+
+                    <!-- Formulaire de vote (si ouvert et pas encore voté ou pour modifier) -->
+                    <?php if ($is_open && $user['role'] !== 'admin'): ?>
+                    <form method="POST" class="flex items-center gap-2 pt-2 border-t border-gray-100">
+                        <input type="hidden" name="action" value="vote_arbitrage">
+                        <input type="hidden" name="mission_slug" value="<?= $slug ?>">
+                        <input type="hidden" name="arbitrage_id" value="<?= $arb['id'] ?>">
+                        <?php
+                        $vote_options = ['ok' => '&#10003; OK', 'pas_ok' => '&#10007; Pas OK', 'a_discuter' => '? À discuter'];
+                        foreach ($vote_options as $val => $label):
+                            $is_my_vote = ($arb['user_vote'] && $arb['user_vote']['vote'] === $val);
+                        ?>
+                        <button type="submit" name="vote" value="<?= $val ?>"
+                            class="text-xs px-3 py-1.5 rounded-lg transition <?= $is_my_vote ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300' : 'bg-gray-50 text-gray-600 hover:bg-gray-100' ?>">
+                            <?= $label ?>
+                        </button>
+                        <?php endforeach; ?>
+                        <input type="text" name="commentaire" placeholder="Commentaire..." value="<?= htmlspecialchars($arb['user_vote']['commentaire'] ?? '') ?>"
+                            class="flex-1 ml-2 px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none">
+                    </form>
+                    <?php elseif ($is_open && $user['role'] === 'admin'): ?>
+                    <!-- Admin peut aussi voter -->
+                    <form method="POST" class="flex items-center gap-2 pt-2 border-t border-gray-100">
+                        <input type="hidden" name="action" value="vote_arbitrage">
+                        <input type="hidden" name="mission_slug" value="<?= $slug ?>">
+                        <input type="hidden" name="arbitrage_id" value="<?= $arb['id'] ?>">
+                        <?php
+                        $vote_options = ['ok' => '&#10003; OK', 'pas_ok' => '&#10007; Pas OK', 'a_discuter' => '? À discuter'];
+                        foreach ($vote_options as $val => $label):
+                            $is_my_vote = ($arb['user_vote'] && $arb['user_vote']['vote'] === $val);
+                        ?>
+                        <button type="submit" name="vote" value="<?= $val ?>"
+                            class="text-xs px-3 py-1.5 rounded-lg transition <?= $is_my_vote ? 'bg-blue-100 text-blue-700 ring-1 ring-blue-300' : 'bg-gray-50 text-gray-600 hover:bg-gray-100' ?>">
+                            <?= $label ?>
+                        </button>
+                        <?php endforeach; ?>
+                        <input type="text" name="commentaire" placeholder="Commentaire..." value="<?= htmlspecialchars($arb['user_vote']['commentaire'] ?? '') ?>"
+                            class="flex-1 ml-2 px-2 py-1 border border-gray-200 rounded text-xs focus:ring-1 focus:ring-blue-500 outline-none">
+                    </form>
+                    <?php endif; ?>
+
+                    <div class="text-xs text-gray-400 mt-2">
+                        Créé le <?= date('d/m/Y', strtotime($arb['created_at'])) ?>
+                        <?php if (!$is_open && $arb['closed_at']): ?>
+                        — Clos le <?= date('d/m/Y', strtotime($arb['closed_at'])) ?>
+                        <?php endif; ?>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+
+        <?php elseif ($active_tab === 'decisions'): ?>
+        <!-- ═══ FIL DE DÉCISIONS ═══ -->
+        <div class="max-w-3xl">
+            <!-- Formulaire (admin) -->
+            <?php if ($user['role'] === 'admin'): ?>
+            <form method="POST" class="bg-white rounded-lg border border-gray-200 p-5 mb-6">
+                <input type="hidden" name="action" value="create_decision">
+                <input type="hidden" name="mission_slug" value="<?= $slug ?>">
+                <h3 class="text-sm font-medium text-gray-700 mb-3">Enregistrer une décision</h3>
+                <div class="space-y-3">
+                    <input type="text" name="titre" required placeholder="Intitulé de la décision"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <div class="grid grid-cols-2 gap-3">
+                        <input type="text" name="decideur" placeholder="Décideur"
+                            class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                        <input type="date" name="date_decision" value="<?= date('Y-m-d') ?>"
+                            class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    </div>
+                    <textarea name="contexte" rows="2" placeholder="Contexte / raison de la décision"
+                        class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"></textarea>
+                </div>
+                <div class="flex justify-end mt-3">
+                    <button type="submit" class="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition">Enregistrer</button>
+                </div>
+            </form>
+            <?php endif; ?>
+
+            <?php if (empty($decisions)): ?>
+            <div class="text-center py-12 text-gray-400">
+                <p class="text-sm">Aucune décision enregistrée pour l'instant.</p>
+                <p class="text-xs mt-1">Les décisions prises au cours de la mission apparaîtront ici.</p>
+            </div>
+            <?php else: ?>
+            <div class="space-y-3">
+                <?php foreach ($decisions as $dec):
+                    $d_date = date('d/m/Y', strtotime($dec['date_decision']));
+                ?>
+                <div class="bg-white rounded-lg border border-gray-200 p-4">
+                    <div class="flex items-start gap-3">
+                        <div class="flex-shrink-0 mt-0.5">
+                            <div class="w-8 h-8 rounded-full bg-blue-50 flex items-center justify-center">
+                                <svg class="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/></svg>
+                            </div>
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <h3 class="text-sm font-medium text-gray-800"><?= htmlspecialchars($dec['titre']) ?></h3>
+                                <span class="text-xs text-gray-400"><?= $d_date ?></span>
+                            </div>
+                            <?php if ($dec['decideur']): ?>
+                            <p class="text-xs text-gray-500 mt-0.5">Décideur : <?= htmlspecialchars($dec['decideur']) ?></p>
+                            <?php endif; ?>
+                            <?php if ($dec['contexte']): ?>
+                            <p class="text-xs text-gray-500 mt-1"><?= htmlspecialchars($dec['contexte']) ?></p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+        </div>
+
+
+        <?php elseif ($active_tab === 'points'): ?>
+        <!-- ═══ POINTS HEBDO ═══ -->
+        <div class="max-w-3xl">
+
+        <?php if ($active_point): ?>
+            <!-- ── VUE DÉTAIL ── -->
+            <a href="/<?= $slug ?>?tab=points" class="inline-flex items-center gap-1 text-sm text-blue-600 hover:underline mb-4">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+                Retour à la liste
+            </a>
+
+            <!-- En-tête + Stepper -->
+            <div class="bg-white rounded-lg border border-gray-200 p-5 mb-4">
+                <div class="flex items-center justify-between mb-3">
+                    <div class="flex items-center gap-3">
+                        <h2 class="text-lg font-medium text-gray-800">Point <?= htmlspecialchars($active_point['semaine']) ?></h2>
+                        <span class="text-sm text-gray-400"><?= date('d/m/Y', strtotime($active_point['date_point'])) ?></span>
+                    </div>
+                    <?php if ($active_point['statut'] === 'brouillon' && $user['role'] === 'admin'): ?>
+                    <form method="POST">
+                        <input type="hidden" name="action" value="publish_point">
+                        <input type="hidden" name="mission_slug" value="<?= $slug ?>">
+                        <input type="hidden" name="point_id" value="<?= $active_point['id'] ?>">
+                        <button type="submit" class="bg-green-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-green-700 transition">Publier</button>
+                    </form>
+                    <?php endif; ?>
+                </div>
+                <!-- Stepper visuel -->
+                <?php
+                $stepper_steps = ['brouillon' => 'Brouillon', 'en_cours' => 'En cours', 'publie' => 'Publié'];
+                $current_step_idx = ($active_point['statut'] === 'brouillon') ? 0 : (($active_point['statut'] === 'publie') ? 2 : 1);
+                ?>
+                <div class="flex items-center gap-0 mt-1">
+                    <?php $si = 0; foreach ($stepper_steps as $skey => $slabel): ?>
+                        <?php if ($si > 0): ?>
+                        <div class="flex-1 h-0.5 <?= $si <= $current_step_idx ? 'bg-blue-500' : 'bg-gray-200' ?> mx-1"></div>
+                        <?php endif; ?>
+                        <div class="flex items-center gap-1.5 point-stepper-step <?= $si <= $current_step_idx ? 'active' : '' ?>">
+                            <div class="w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium
+                                <?= $si < $current_step_idx ? 'bg-blue-500 text-white' : ($si === $current_step_idx ? 'bg-blue-500 text-white ring-2 ring-blue-200' : 'bg-gray-200 text-gray-400') ?>">
+                                <?php if ($si < $current_step_idx): ?>
+                                <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                                <?php else: ?>
+                                <?= $si + 1 ?>
+                                <?php endif; ?>
+                            </div>
+                            <span class="text-xs <?= $si <= $current_step_idx ? 'text-blue-700' : 'text-gray-400' ?>"><?= $slabel ?></span>
+                        </div>
+                    <?php $si++; endforeach; ?>
+                </div>
+                <?php if ($active_point['frequence']): ?>
+                <p class="text-xs text-gray-400 mt-2">Fréquence : <?= htmlspecialchars($active_point['frequence']) ?></p>
+                <?php endif; ?>
+            </div>
+
+            <!-- Ordre du jour -->
+            <div class="bg-white rounded-lg border border-gray-200 p-5 mb-4">
+                <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Ordre du jour</h3>
+                <?php if ($active_point['statut'] === 'brouillon' && $user['role'] === 'admin'): ?>
+                <form method="POST">
+                    <input type="hidden" name="action" value="update_point">
+                    <input type="hidden" name="mission_slug" value="<?= $slug ?>">
+                    <input type="hidden" name="point_id" value="<?= $active_point['id'] ?>">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="md-preview-toggle text-xs text-blue-500 hover:underline" onclick="toggleMdPreview(this, 'odj')">Aperçu</span>
+                    </div>
+                    <textarea id="md-edit-odj" name="ordre_du_jour" rows="3" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none mb-2"><?= htmlspecialchars($active_point['ordre_du_jour'] ?? '') ?></textarea>
+                    <div id="md-preview-odj" class="hidden text-sm text-gray-700 md-rendered border border-gray-200 rounded-lg px-3 py-2 mb-2 min-h-[3rem] bg-gray-50"></div>
+                    <div class="flex justify-end">
+                        <button type="submit" class="text-xs text-blue-600 hover:underline">Enregistrer</button>
+                    </div>
+                </form>
+                <?php else: ?>
+                <div class="text-sm text-gray-700 md-rendered" data-md="<?= htmlspecialchars($active_point['ordre_du_jour'] ?? '', ENT_QUOTES) ?>"></div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Actions -->
+            <div class="bg-white rounded-lg border border-gray-200 p-5 mb-4">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide">Actions</h3>
+                    <?php
+                    $total_act = count($active_point_actions);
+                    $done_act = count(array_filter($active_point_actions, fn($a) => $a['statut'] === 'fait'));
+                    $pct = $total_act > 0 ? round(($done_act / $total_act) * 100) : 0;
+                    ?>
+                    <span id="actions-counter" class="text-xs text-gray-400"><?= $done_act ?>/<?= $total_act ?> faites</span>
+                </div>
+
+                <!-- Barre de progression -->
+                <?php if ($total_act > 0): ?>
+                <div class="w-full bg-gray-100 rounded-full h-2 mb-4 overflow-hidden">
+                    <div id="actions-progress-bar" class="progress-bar-fill h-2 rounded-full <?= $pct === 100 ? 'bg-green-500' : 'bg-blue-500' ?>" style="width: <?= $pct ?>%"></div>
+                </div>
+                <?php endif; ?>
+
+                <?php if (empty($active_point_actions)): ?>
+                <p class="text-sm text-gray-400 italic">Aucune action pour ce point.</p>
+                <?php else: ?>
+                <div class="space-y-2 mb-4" id="actions-list">
+                    <?php foreach ($active_point_actions as $pa):
+                        $is_done = ($pa['statut'] === 'fait');
+                        $is_reporte = ($pa['statut'] === 'reporte');
+                    ?>
+                    <div class="point-action-row flex items-start gap-3 py-2 <?= $is_done ? 'done' : '' ?>" data-action-id="<?= $pa['id'] ?>">
+                        <button type="button" onclick="toggleAction(<?= $pa['id'] ?>, '<?= $slug ?>', <?= $active_point['id'] ?>)" class="point-action-check flex-shrink-0 mt-0.5 w-5 h-5 rounded border-2 flex items-center justify-center transition <?= $is_done ? 'bg-green-500 border-green-500 text-white' : 'border-gray-300 hover:border-blue-400' ?>">
+                            <?php if ($is_done): ?>
+                            <svg class="w-3 h-3 check-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>
+                            <?php endif; ?>
+                        </button>
+                        <div class="flex-1 min-w-0">
+                            <span class="action-text text-sm text-gray-800"><?= htmlspecialchars($pa['titre']) ?></span>
+                            <?php if ($is_reporte): ?>
+                            <span class="text-xs text-orange-500 ml-1">reporté</span>
+                            <?php endif; ?>
+                            <div class="flex items-center gap-3 mt-0.5">
+                                <?php if ($pa['responsable']): ?>
+                                <span class="text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-600"><?= htmlspecialchars($pa['responsable']) ?></span>
+                                <?php endif; ?>
+                                <?php if ($pa['echeance']): ?>
+                                <span class="text-xs text-gray-400"><?= date('d/m', strtotime($pa['echeance'])) ?></span>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+
+                <!-- Ajouter une action (admin) -->
+                <?php if ($user['role'] === 'admin'): ?>
+                <form method="POST" class="border-t border-gray-100 pt-3">
+                    <input type="hidden" name="action" value="add_point_action">
+                    <input type="hidden" name="mission_slug" value="<?= $slug ?>">
+                    <input type="hidden" name="point_id" value="<?= $active_point['id'] ?>">
+                    <div class="flex items-center gap-2">
+                        <input type="text" name="titre" required placeholder="Nouvelle action..."
+                            class="flex-1 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                        <input type="text" name="responsable" placeholder="Responsable"
+                            class="w-28 px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                        <input type="date" name="echeance"
+                            class="px-2 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                        <button type="submit" class="bg-blue-600 text-white text-xs font-medium px-3 py-1.5 rounded-lg hover:bg-blue-700 transition">+</button>
+                    </div>
+                </form>
+                <?php endif; ?>
+            </div>
+
+            <!-- Météo collective -->
+            <div class="bg-white rounded-lg border border-gray-200 p-5 mb-4">
+                <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Météo collective</h3>
+
+                <?php
+                $meteo_icons_point = [4 => ['icon' => '☀️', 'label' => 'Soleil', 'bg' => 'bg-yellow-50'], 3 => ['icon' => '⛅', 'label' => 'Nuageux', 'bg' => 'bg-gray-50'], 2 => ['icon' => '⛈️', 'label' => 'Orage', 'bg' => 'bg-blue-50'], 1 => ['icon' => '🌪️', 'label' => 'Tempête', 'bg' => 'bg-red-50']];
+                $user_meteo = null;
+                foreach ($active_point_meteos as $pm) {
+                    if ($pm['user_id'] == $user['id']) { $user_meteo = $pm; break; }
+                }
+                ?>
+
+                <!-- Vote météo (AJAX) -->
+                <div class="mb-4" id="meteo-vote-area">
+                    <div class="flex items-center gap-2 mb-2">
+                        <?php foreach ($meteo_icons_point as $sc => $info):
+                            $is_sel = ($user_meteo && intval($user_meteo['score']) === $sc);
+                        ?>
+                        <button type="button" onclick="postMeteo(<?= $sc ?>, '<?= $slug ?>', <?= $active_point['id'] ?>)" title="<?= $info['label'] ?>"
+                            data-meteo-score="<?= $sc ?>"
+                            class="meteo-btn text-2xl px-3 py-2 rounded-lg <?= $info['bg'] ?> <?= $is_sel ? 'selected ring-2 ring-blue-400' : '' ?>">
+                            <?= $info['icon'] ?>
+                        </button>
+                        <?php endforeach; ?>
+                        <input type="text" id="meteo-commentaire" maxlength="280" placeholder="Commentaire optionnel..." value="<?= htmlspecialchars($user_meteo['commentaire'] ?? '') ?>"
+                            class="flex-1 ml-2 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    </div>
+                </div>
+
+                <!-- Météos déjà données -->
+                <?php if (!empty($active_point_meteos)): ?>
+                <div class="space-y-1 border-t border-gray-100 pt-3">
+                    <?php foreach ($active_point_meteos as $pm):
+                        $pm_icon = $meteo_icons_point[intval($pm['score'])]['icon'] ?? '?';
+                        $pm_bg = $meteo_icons_point[intval($pm['score'])]['bg'] ?? '';
+                    ?>
+                    <div class="flex items-center gap-2 text-sm <?= $pm_bg ?> px-3 py-1.5 rounded">
+                        <span><?= $pm_icon ?></span>
+                        <span class="font-medium text-gray-700"><?= htmlspecialchars($pm['user_nom'] ?? 'Utilisateur') ?></span>
+                        <?php if ($pm['commentaire']): ?>
+                        <span class="text-gray-500 italic text-xs">— <?= htmlspecialchars($pm['commentaire']) ?></span>
+                        <?php endif; ?>
+                    </div>
+                    <?php endforeach; ?>
+                </div>
+                <?php endif; ?>
+            </div>
+
+            <!-- Résumé / Avancement / Prochaines étapes -->
+            <div class="bg-white rounded-lg border border-gray-200 p-5 mb-4">
+                <h3 class="text-xs font-medium text-gray-400 uppercase tracking-wide mb-3">Résumé & suivi</h3>
+                <?php if ($active_point['statut'] === 'brouillon' && $user['role'] === 'admin'): ?>
+                <form method="POST" class="space-y-4">
+                    <input type="hidden" name="action" value="update_point">
+                    <input type="hidden" name="mission_slug" value="<?= $slug ?>">
+                    <input type="hidden" name="point_id" value="<?= $active_point['id'] ?>">
+
+                    <?php foreach (['resume' => 'Résumé', 'avancement' => 'Avancement', 'prochaines_etapes' => 'Prochaines étapes'] as $field_key => $field_label): ?>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="text-xs text-gray-500"><?= $field_label ?></label>
+                            <span class="md-preview-toggle text-xs text-blue-500 hover:underline" onclick="toggleMdPreview(this, '<?= $field_key ?>')">Aperçu</span>
+                        </div>
+                        <textarea id="md-edit-<?= $field_key ?>" name="<?= $field_key ?>" rows="<?= $field_key === 'resume' ? 3 : 2 ?>" class="w-full px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"><?= htmlspecialchars($active_point[$field_key] ?? '') ?></textarea>
+                        <div id="md-preview-<?= $field_key ?>" class="hidden text-sm text-gray-700 md-rendered border border-gray-200 rounded-lg px-3 py-2 min-h-[2rem] bg-gray-50"></div>
+                    </div>
+                    <?php endforeach; ?>
+
+                    <div class="flex items-center gap-3">
+                        <div>
+                            <label class="text-xs text-gray-500 block mb-1">Temps passé (heures)</label>
+                            <input type="number" name="temps_passe" step="0.25" min="0" value="<?= htmlspecialchars($active_point['temps_passe'] ?? '') ?>"
+                                class="w-24 px-3 py-1.5 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                        </div>
+                        <div class="flex-1"></div>
+                        <button type="submit" class="bg-blue-600 text-white text-xs font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition mt-4">Enregistrer</button>
+                    </div>
+                </form>
+                <?php else: ?>
+                <?php foreach (['resume' => 'Résumé', 'avancement' => 'Avancement', 'prochaines_etapes' => 'Prochaines étapes'] as $field_key => $field_label): ?>
+                <?php if ($active_point[$field_key]): ?>
+                <div class="mb-3">
+                    <span class="text-xs text-gray-500 block mb-1"><?= $field_label ?></span>
+                    <div class="text-sm text-gray-700 md-rendered" data-md="<?= htmlspecialchars($active_point[$field_key], ENT_QUOTES) ?>"></div>
+                </div>
+                <?php endif; ?>
+                <?php endforeach; ?>
+                <?php if ($active_point['temps_passe']): ?>
+                <div class="inline-block px-3 py-1.5 bg-gray-50 rounded text-xs text-gray-500 mt-2">
+                    Temps passé : <?= htmlspecialchars($active_point['temps_passe']) ?>h
+                </div>
+                <?php endif; ?>
+                <?php endif; ?>
+            </div>
+
+        <?php else: ?>
+            <!-- ── VUE LISTE ── -->
+
+            <!-- Bouton nouveau point (admin) -->
+            <?php if ($user['role'] === 'admin'): ?>
+            <form method="POST" class="bg-white rounded-lg border border-gray-200 p-5 mb-6">
+                <input type="hidden" name="action" value="create_point">
+                <input type="hidden" name="mission_slug" value="<?= $slug ?>">
+                <h3 class="text-sm font-medium text-gray-700 mb-3">Nouveau point</h3>
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <input type="text" name="semaine" required placeholder="S20" class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <input type="date" name="date_point" value="<?= date('Y-m-d') ?>" class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <input type="text" name="frequence" placeholder="hebdomadaire" value="hebdomadaire" class="px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                    <button type="submit" class="bg-blue-600 text-white text-sm font-medium px-4 py-2 rounded-lg hover:bg-blue-700 transition">Créer</button>
+                </div>
+                <textarea name="ordre_du_jour" rows="2" placeholder="Ordre du jour (optionnel)" class="w-full mt-3 px-3 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none resize-none"></textarea>
+            </form>
+            <?php endif; ?>
+
+            <?php if (empty($points_hebdo)): ?>
+            <div class="text-center py-12 text-gray-400">
+                <p class="text-sm">Aucun point hebdo pour l'instant.</p>
+                <p class="text-xs mt-1">Les comptes-rendus de réunion structurés apparaîtront ici.</p>
+            </div>
+            <?php else: ?>
+            <div class="space-y-3">
+                <?php
+                $meteo_icons_list = [4 => '☀️', 3 => '⛅', 2 => '⛈️', 1 => '🌪️'];
+                foreach ($points_hebdo as $ph):
+                    $ph_date = date('d/m/Y', strtotime($ph['date_point']));
+                    $is_brouillon = ($ph['statut'] === 'brouillon');
+                    // Météo moyenne arrondie
+                    $avg_icon = '';
+                    if ($ph['meteo_avg']) {
+                        $rounded = max(1, min(4, round($ph['meteo_avg'])));
+                        $avg_icon = $meteo_icons_list[$rounded] ?? '';
+                    }
+                ?>
+                <?php $list_pct = $ph['actions_total'] > 0 ? round(($ph['actions_faites'] / $ph['actions_total']) * 100) : 0; ?>
+                <a href="/<?= $slug ?>?tab=points&point_id=<?= $ph['id'] ?>" class="block bg-white rounded-lg border border-gray-200 hover:border-blue-400 hover:shadow-sm transition overflow-hidden">
+                    <div class="flex items-center justify-between p-4">
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm font-medium text-gray-800"><?= htmlspecialchars($ph['semaine']) ?></span>
+                            <span class="text-xs text-gray-400"><?= $ph_date ?></span>
+                            <?php if ($is_brouillon): ?>
+                            <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-yellow-100 text-yellow-700">Brouillon</span>
+                            <?php else: ?>
+                            <span class="px-2 py-0.5 text-xs font-medium rounded-full bg-green-100 text-green-700">Publié</span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="flex items-center gap-4 text-xs text-gray-400">
+                            <?php if ($ph['actions_total'] > 0): ?>
+                            <span><?= $ph['actions_faites'] ?>/<?= $ph['actions_total'] ?> actions</span>
+                            <?php endif; ?>
+                            <?php if ($avg_icon): ?>
+                            <span title="Météo moyenne : <?= $ph['meteo_avg'] ?>/4 (<?= $ph['meteo_nb'] ?> votes)"><?= $avg_icon ?></span>
+                            <?php endif; ?>
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+                        </div>
+                    </div>
+                    <?php if ($ph['actions_total'] > 0): ?>
+                    <div class="h-1 bg-gray-100">
+                        <div class="mini-progress h-1 <?= $list_pct === 100 ? 'bg-green-400' : 'bg-blue-400' ?>" style="width: <?= $list_pct ?>%"></div>
+                    </div>
+                    <?php endif; ?>
+                </a>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
+        <?php endif; ?>
+        </div>
+
+        <!-- JavaScript Points Hebdo -->
+        <script>
+        // --- AJAX toggle action ---
+        function toggleAction(actionId, slug, pointId) {
+            var row = document.querySelector('[data-action-id="' + actionId + '"]');
+            var btn = row.querySelector('.point-action-check');
+            var isDone = row.classList.contains('done');
+
+            // Optimistic UI
+            if (isDone) {
+                row.classList.remove('done');
+                btn.classList.remove('bg-green-500', 'border-green-500', 'text-white');
+                btn.classList.add('border-gray-300');
+                btn.innerHTML = '';
+            } else {
+                row.classList.add('done');
+                btn.classList.add('bg-green-500', 'border-green-500', 'text-white');
+                btn.classList.remove('border-gray-300');
+                btn.innerHTML = '<svg class="w-3 h-3 check-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="3" d="M5 13l4 4L19 7"/></svg>';
+            }
+
+            var formData = new FormData();
+            formData.append('action', 'toggle_action');
+            formData.append('mission_slug', slug);
+            formData.append('action_id', actionId);
+            formData.append('point_id', pointId);
+
+            fetch(window.location.pathname, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.ok) {
+                    // Update counter
+                    var counter = document.getElementById('actions-counter');
+                    if (counter) counter.textContent = data.faites + '/' + data.total + ' faites';
+                    // Update progress bar
+                    var bar = document.getElementById('actions-progress-bar');
+                    if (bar && data.total > 0) {
+                        var pct = Math.round((data.faites / data.total) * 100);
+                        bar.style.width = pct + '%';
+                        bar.className = 'progress-bar-fill h-2 rounded-full ' + (pct === 100 ? 'bg-green-500' : 'bg-blue-500');
+                    }
+                }
+            })
+            .catch(function() {
+                // Revert on error
+                window.location.reload();
+            });
+        }
+
+        // --- AJAX météo ---
+        function postMeteo(score, slug, pointId) {
+            var commentaire = document.getElementById('meteo-commentaire');
+            var comment = commentaire ? commentaire.value : '';
+
+            // Optimistic UI: highlight selected
+            document.querySelectorAll('.meteo-btn').forEach(function(b) {
+                b.classList.remove('selected', 'ring-2', 'ring-blue-400');
+            });
+            var selected = document.querySelector('[data-meteo-score="' + score + '"]');
+            if (selected) {
+                selected.classList.add('selected', 'ring-2', 'ring-blue-400');
+            }
+
+            var formData = new FormData();
+            formData.append('action', 'post_point_meteo');
+            formData.append('mission_slug', slug);
+            formData.append('point_id', pointId);
+            formData.append('score', score);
+            formData.append('commentaire', comment);
+
+            fetch(window.location.pathname, {
+                method: 'POST',
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (!data.ok) window.location.reload();
+            })
+            .catch(function() {
+                window.location.reload();
+            });
+        }
+
+        // --- Markdown preview toggle ---
+        function toggleMdPreview(toggleEl, fieldId) {
+            var editEl = document.getElementById('md-edit-' + fieldId);
+            var previewEl = document.getElementById('md-preview-' + fieldId);
+            if (!editEl || !previewEl) return;
+
+            if (previewEl.classList.contains('hidden')) {
+                // Show preview
+                previewEl.innerHTML = marked.parse(editEl.value || '');
+                previewEl.classList.remove('hidden');
+                editEl.classList.add('hidden');
+                toggleEl.textContent = 'Éditer';
+            } else {
+                // Show editor
+                previewEl.classList.add('hidden');
+                editEl.classList.remove('hidden');
+                toggleEl.textContent = 'Aperçu';
+            }
+        }
+
+        // --- Render markdown in read-only fields ---
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.md-rendered[data-md]').forEach(function(el) {
+                var raw = el.getAttribute('data-md');
+                if (raw && raw.trim()) {
+                    el.innerHTML = marked.parse(raw);
+                } else {
+                    el.innerHTML = '<span class="text-gray-400 italic text-sm">—</span>';
+                }
+            });
+        });
+        </script>
+
         <?php endif; ?>
 
     </div>
